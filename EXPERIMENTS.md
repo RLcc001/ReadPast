@@ -6,6 +6,7 @@
 ## 约定
 
 - 课题（2026-10-24 定）：在 SimpleStream（只看最近 N 帧）之上做**免训练、即插即用**的关键帧选择，目标是 2 区期刊。期刊更看重完整性，不要求超过需要训练的 SOTA（如 SelectStream）。
+- 数据（2026-10-24 用户确认）：不下载额外数据集，只用本地的 OVO-Bench 和 StreamingBench-RT（StreamingBench 本地只有 Real-Time 部分的视频）。
 - 主指标：OVO-Bench 实时（RT）和回溯（BT）两类的任务宏平均，avg = (BT + RT) / 2，和 SimpleStream 论文一致；StreamingBench-RT 为第二个 benchmark。
 - 打分：SimpleStream 的 `extract_mcq_answer`（只认 A–D）。
 - 默认 backbone：Qwen2.5-VL-7B-Instruct，1 fps，最近 4 帧（r4）。
