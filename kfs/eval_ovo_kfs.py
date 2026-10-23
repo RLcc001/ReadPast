@@ -6,6 +6,7 @@ sampled and resized exactly like SimpleStream's exact-recent decoder, so `--k 0 
 reproduces the SimpleStream recent-N baseline.
 
 Selectors:  none | uniform (evenly spaced over history) | clip (CLIP text-image top-k)
+            clip_mmr (CLIP relevance with MMR redundancy penalty)
 Layouts:    ss      all frames in one vision block, chronological (SimpleStream's prompt)
             blocks  one vision block per frame, no text
             tagged  history frames each with a timestamp, then "current view" + recent block
@@ -111,7 +112,7 @@ class KFSModel(RecentWindowQAModel):
 
 
 class ClipScorer:
-    """CLIP text-image relevance over the history frames, cached per question."""
+    """CLIP text-image relevance over the 1-fps prefix frames, image features cached per question."""
 
     def __init__(self, path: str, device: str, cache_dir: str, decode_short_side: int = 336, batch: int = 64):
         from transformers import CLIPModel, CLIPProcessor
@@ -155,7 +156,7 @@ class ClipScorer:
         return torch.nn.functional.normalize(f.float(), dim=-1)[0].cpu().numpy()
 
 
-def select_history(args, scorer: ClipScorer | None, anno: dict, video_path: str, hist: list[int]) -> tuple[list[int], list[float] | None]:
+def select_history(args, scorer: ClipScorer | None, anno: dict, video_path: str, full: list[int], hist: list[int]) -> tuple[list[int], list[float] | None]:
     """Return chosen history positions (indices into `hist`, chronological) and their scores."""
     k = args.k
     if k <= 0 or not hist:
@@ -164,12 +165,22 @@ def select_history(args, scorer: ClipScorer | None, anno: dict, video_path: str,
         return list(range(len(hist))), None
     if args.select == "uniform":
         return [int((i + 0.5) * len(hist) / k) for i in range(k)], None
+    img = scorer.image_feats(f"{anno['task']}_{anno['id']}", video_path, full)[: len(hist)]
+    sims = img @ scorer.text_feat(anno["question"])
     if args.select == "clip":
-        img = scorer.image_feats(f"{anno['task']}_{anno['id']}", video_path, hist)
-        sims = img @ scorer.text_feat(anno["question"])
-        top = sorted(np.argsort(-sims)[:k].tolist())
-        return top, [round(float(sims[i]), 4) for i in top]
-    raise ValueError(args.select)
+        top = np.argsort(-sims)[:k].tolist()
+    elif args.select == "clip_mmr":
+        rel = (sims - sims.min()) / max(float(sims.max() - sims.min()), 1e-6)
+        top = []
+        for _ in range(k):
+            red = (img @ img[top].T).max(1) if top else np.zeros_like(rel)
+            score = (1 - args.mmr_lambda) * rel - args.mmr_lambda * red
+            score[top] = -np.inf
+            top.append(int(np.argmax(score)))
+    else:
+        raise ValueError(args.select)
+    top = sorted(top)
+    return top, [round(float(sims[i]), 4) for i in top]
 
 
 def to_pil(frame: torch.Tensor) -> Image.Image:
@@ -200,7 +211,7 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     recent, hist = full[-args.recent:], full[:-args.recent]
 
     t0 = time.perf_counter()
-    pos, scores = select_history(args, scorer, anno, video_path, hist)
+    pos, scores = select_history(args, scorer, anno, video_path, full, hist)
     select_time = time.perf_counter() - t0
     chosen = [hist[p] for p in pos]
 
@@ -242,7 +253,8 @@ def main() -> None:
     ap.add_argument("--result_dir", required=True)
     ap.add_argument("--recent", type=int, default=4)
     ap.add_argument("--k", type=int, default=0, help="number of history keyframes")
-    ap.add_argument("--select", choices=["none", "uniform", "clip"], default="none")
+    ap.add_argument("--select", choices=["none", "uniform", "clip", "clip_mmr"], default="none")
+    ap.add_argument("--mmr_lambda", type=float, default=0.5)
     ap.add_argument("--layout", choices=["ss", "blocks", "tagged"], default="ss")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
@@ -261,7 +273,7 @@ def main() -> None:
     print(json.dumps(vars(args)), {g: len(v) for g, v in groups.items()}, flush=True)
 
     qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
-    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if args.select == "clip" else None
+    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if args.select.startswith("clip") else None
 
     os.makedirs(args.result_dir, exist_ok=True)
     ckpt = os.path.join(args.result_dir, "results_incremental.jsonl")
