@@ -3,7 +3,7 @@
 The same VLM reads only the question text (no options, no frames: the "Unable to answer" option would leak HLD) and
 the next-token distribution over "past" / "now" gives p_past. One fixed prompt, no tuning.
 
-Output: {out_dir}/route.json  {"<task>:<id>": {"p_past": float, "mass": float}}
+Output: {out_dir}/route.json  {"<task>:<id>" (OVO) or "<question_id>" (--bench sb): {"p_past": float, "mass": float}}
 
 usage: python kfs/route.py --out_dir $RX_RUN_DIR/out
 """
@@ -46,6 +46,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model_path", default="Qwen/Qwen2.5-VL-7B-Instruct")
     ap.add_argument("--anno_path", default="/workspace/datasets/streaming/ovo_bench/ovo_bench_new.json")
+    ap.add_argument("--bench", choices=["ovo", "sb"], default="ovo")
+    ap.add_argument("--sb_anno", default="/workspace/datasets/streaming/streamingbench/questions_real.json")
     ap.add_argument("--out_dir", required=True)
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
@@ -56,11 +58,15 @@ def main() -> None:
     words = {w: sorted({tok.encode(s, add_special_tokens=False)[0] for s in (w, w.capitalize())}) for w in ("past", "now")}
     print(json.dumps(vars(args)), words, flush=True)
 
-    annos = [a for a in json.load(open(args.anno_path)) if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
+    if args.bench == "sb":
+        qs = [(q["question_id"], q["question"]) for e in json.load(open(args.sb_anno)) for q in e["questions"]]
+    else:
+        qs = [(f"{a['task']}:{a['id']}", a["question"]) for a in json.load(open(args.anno_path))
+              if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
     out, t0 = {}, time.perf_counter()
-    for a in annos:
-        pp, mass = p_past(qa, a["question"], words)
-        out[f"{a['task']}:{a['id']}"] = {"p_past": round(pp, 5), "mass": round(mass, 5)}
+    for key, question in qs:
+        pp, mass = p_past(qa, question, words)
+        out[key] = {"p_past": round(pp, 5), "mass": round(mass, 5)}
     json.dump(out, open(os.path.join(args.out_dir, "route.json"), "w"), indent=0)
     print(f"done: {len(out)} questions in {time.perf_counter() - t0:.0f}s", flush=True)
 
