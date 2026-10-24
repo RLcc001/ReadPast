@@ -288,8 +288,11 @@ def foreign_captions(cap_dir: str, video: str, caps: list[dict]) -> list[dict]:
         _foreign_loaded.add(cap_dir)
     informative = {v: [c for c in cs if not is_no_change(c["text"])] for v, cs in _captions.items() if v != video}
     donors = sorted(v for v, cs in informative.items() if len(cs) >= len(caps))
-    donor = donors[zlib.crc32(video.encode()) % len(donors)]
-    return [{**c, "text": d["text"]} for c, d in zip(caps, informative[donor])]
+    if donors:
+        texts = informative[donors[zlib.crc32(video.encode()) % len(donors)]]
+    else:  # longer than every other video: chain the longest ones
+        texts = [c for v in sorted(informative, key=lambda v: -len(informative[v])) for c in informative[v]]
+    return [{**c, "text": d["text"]} for c, d in zip(caps, texts)]
 
 
 def timeline_line(c: dict, num: int | None = None) -> str:
