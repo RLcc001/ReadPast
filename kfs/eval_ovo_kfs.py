@@ -10,6 +10,8 @@ Selectors:  none | uniform (evenly spaced over history) | clip (CLIP text-image 
 Layouts:    ss      all frames in one vision block, chronological (SimpleStream's prompt)
             blocks  one vision block per frame, no text
             tagged  history frames each with a timestamp, then "current view" + recent block
+History frames can be shrunk (--hist_scale, fraction of the recent frames' pixels) and the
+question can be prefixed with an evidence-skeptical note about the history (--hist_note).
 """
 
 from __future__ import annotations
@@ -26,6 +28,8 @@ os.environ.setdefault("FORCE_QWENVL_VIDEO_READER", "decord")
 import numpy as np
 import torch
 from PIL import Image
+from torchvision.transforms import InterpolationMode
+from torchvision.transforms import functional as TF
 from tqdm import tqdm
 
 SS_ROOT = os.environ.get("SS_ROOT", "/workspace/streamkv/third_party/SimpleStream")
@@ -41,6 +45,12 @@ from lib.qwen_exact_recent_decoder import (  # noqa: E402
 from lib.recent_window_eval import calculate_ovo_scores, load_jsonl_results  # noqa: E402
 from lib.recent_window_eval_qwen25 import RecentWindowQAModel, build_qwen25_prompt  # noqa: E402
 from ovo_constants import BACKWARD_TASKS, REAL_TIME_TASKS  # noqa: E402
+from qwen_vl_utils.vision_process import smart_resize  # noqa: E402
+
+HIST_NOTE = (
+    "The earlier keyframes were retrieved automatically and may be unrelated to the question. "
+    "Use them only if they clearly contain the needed evidence; otherwise answer from the current view.\n"
+)
 
 VisionBlock = list[tuple[torch.Tensor, torch.Tensor]]  # [(embeds, grid_thw row)] for one <vision_start> block
 
@@ -217,14 +227,23 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
 
     frames = _decode_indices(video_path, plan.backend, chosen + recent)
     frames = _resize_like_fetch_video(frames, ele, plan.sampled_nframes_full, image_patch_size=14)
+    frame_list = list(frames)
+    if chosen and args.hist_scale < 1.0:
+        h, w = frames.shape[-2:]
+        hh, ww = smart_resize(h, w, factor=28, min_pixels=4 * 28 * 28, max_pixels=int(h * w * args.hist_scale))
+        for i in range(len(chosen)):
+            frame_list[i] = TF.resize(frame_list[i], [hh, ww], interpolation=InterpolationMode.BICUBIC, antialias=True)
     blocks: VisionBlock = []
-    for fr in frames:
+    for fr in frame_list:
         emb, grid = qa.encode_vision([to_pil(fr)])
         blocks.append((emb, grid))
 
     hist_ts = [i / plan.raw_fps for i in chosen]
     segments = build_segments(args.layout, blocks[:len(chosen)], hist_ts, blocks[len(chosen):], len(recent))
-    out = qa.generate_segments(segments, build_qwen25_prompt(anno["task"], anno), len(anno["options"]))
+    question = build_qwen25_prompt(anno["task"], anno)
+    if chosen and args.hist_note:
+        question = HIST_NOTE + question
+    out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
         "id": anno["id"],
         "video": anno["video"],
@@ -256,6 +275,8 @@ def main() -> None:
     ap.add_argument("--select", choices=["none", "uniform", "clip", "clip_mmr"], default="none")
     ap.add_argument("--mmr_lambda", type=float, default=0.5)
     ap.add_argument("--layout", choices=["ss", "blocks", "tagged"], default="ss")
+    ap.add_argument("--hist_scale", type=float, default=1.0, help="history frame pixels as a fraction of recent frames")
+    ap.add_argument("--hist_note", action="store_true", help="prefix the question with an evidence-skeptical note")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
