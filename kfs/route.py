@@ -3,6 +3,9 @@
 The same VLM reads only the question text (no options, no frames: the "Unable to answer" option would leak HLD) and
 the next-token distribution over "past" / "now" gives p_past. One fixed prompt, no tuning.
 
+Contextual calibration (Zhao et al., 2021): p_past of content-free questions ("N/A", "", "[MASK]"), averaged, is
+written to {out_dir}/calib.json; the calibrated rule "past iff p_past >= p_cf" needs no threshold tuning.
+
 Output: {out_dir}/route.json  {"<task>:<id>" (OVO) or "<question_id>" (--bench sb): {"p_past": float, "mass": float}}
 
 usage: python kfs/route.py --out_dir $RX_RUN_DIR/out
@@ -82,6 +85,9 @@ def main() -> None:
         pp, mass = p_past(qa, question, words, ROUTE_PROMPTS[args.prompt])
         out[key] = {"p_past": round(pp, 5), "mass": round(mass, 5)}
     json.dump(out, open(os.path.join(args.out_dir, "route.json"), "w"), indent=0)
+    cf = {q: p_past(qa, q, words, ROUTE_PROMPTS[args.prompt])[0] for q in ("N/A", "", "[MASK]")}
+    json.dump({"content_free": cf, "p_cf": sum(cf.values()) / len(cf)}, open(os.path.join(args.out_dir, "calib.json"), "w"), indent=1)
+    print("calibration", cf, flush=True)
     print(f"done: {len(out)} questions in {time.perf_counter() - t0:.0f}s", flush=True)
 
 
