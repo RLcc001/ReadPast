@@ -21,18 +21,31 @@ from eval_ovo_kfs import BACKWARD_TASKS, REAL_TIME_TASKS, KFSModel  # noqa: E402
 
 import torch  # noqa: E402
 
-ROUTE_PROMPT = (
-    "You are watching a live video stream. At the current moment someone asks a question about it.\n"
-    "Question: {question}\n"
-    "To answer it, do you need to remember what happened earlier in the stream, or is what is visible right now "
-    "enough? Reply with one word: past or now."
-)
+ROUTE_PROMPTS = [
+    (
+        "You are watching a live video stream. At the current moment someone asks a question about it.\n"
+        "Question: {question}\n"
+        "To answer it, do you need to remember what happened earlier in the stream, or is what is visible right now "
+        "enough? Reply with one word: past or now."
+    ),
+    # paraphrases for the prompt-sensitivity check
+    (
+        "Question about a live video: {question}\n"
+        "Can this question be answered from the current frame alone, or does it require information from earlier in "
+        "the video? Answer with one word: now or past."
+    ),
+    (
+        "Here is a question asked during a live video stream: {question}\n"
+        "Does it ask about something that happened before the current moment? Reply with one word: past or now."
+    ),
+]
+ROUTE_PROMPT = ROUTE_PROMPTS[0]
 
 
 @torch.inference_mode()
-def p_past(qa: KFSModel, question: str, words: dict[str, list[int]]) -> tuple[float, float]:
+def p_past(qa: KFSModel, question: str, words: dict[str, list[int]], prompt: str = ROUTE_PROMPT) -> tuple[float, float]:
     tok = qa.processor.tokenizer
-    ids = [qa._im_start_id] + tok.encode("user\n" + ROUTE_PROMPT.format(question=question.strip()), add_special_tokens=False)
+    ids = [qa._im_start_id] + tok.encode("user\n" + prompt.format(question=question.strip()), add_special_tokens=False)
     ids += [qa._im_end_id] + tok.encode("\n", add_special_tokens=False)
     ids += [qa._im_start_id] + tok.encode("assistant\n", add_special_tokens=False)
     logits = qa.model(input_ids=torch.tensor([ids], device=qa.model.device), use_cache=False).logits[0, -1].float()
@@ -48,6 +61,7 @@ def main() -> None:
     ap.add_argument("--anno_path", default="/workspace/datasets/streaming/ovo_bench/ovo_bench_new.json")
     ap.add_argument("--bench", choices=["ovo", "sb"], default="ovo")
     ap.add_argument("--sb_anno", default="/workspace/datasets/streaming/streamingbench/questions_real.json")
+    ap.add_argument("--prompt", type=int, default=0, help="index into ROUTE_PROMPTS")
     ap.add_argument("--out_dir", required=True)
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
@@ -65,7 +79,7 @@ def main() -> None:
               if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
     out, t0 = {}, time.perf_counter()
     for key, question in qs:
-        pp, mass = p_past(qa, question, words)
+        pp, mass = p_past(qa, question, words, ROUTE_PROMPTS[args.prompt])
         out[key] = {"p_past": round(pp, 5), "mass": round(mass, 5)}
     json.dump(out, open(os.path.join(args.out_dir, "route.json"), "w"), indent=0)
     print(f"done: {len(out)} questions in {time.perf_counter() - t0:.0f}s", flush=True)
