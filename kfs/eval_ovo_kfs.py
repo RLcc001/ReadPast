@@ -21,6 +21,14 @@ Bounded memory (--budget N): when the caption lines exceed N tokens, the latest 
 and older ones are admitted newest-first (--retain recency) or by surprisal under the earlier memory
 (--retain surprise, scores from kfs/surprisal.py), then shown in time order.
 Control (--foreign_timeline): same clips and timestamps, but the caption texts come from another source video.
+Progressive memory access (--cascade ROUTE_JSON, needs --captions):
+  L0  SimpleStream (recent frames only), always.
+  L1  + caption timeline, when the question is about the past (p_past from kfs/route.py >= --route_th) or L0 is
+      unsure (max option prob < --tau0).                                                  [module 1]
+  L2  + look-back evidence, when L1 is unsure (< --tau1): the CLIP top-`lookback_k` history frames are written
+      into a short text note by the same model (frames never enter the answering context), the note is placed
+      between the timeline and the current view, and the question is answered again.      [module 2]
+  --note_mode desc: neutral description (the question is not shown); qdesc: description focused on the question.
 """
 
 from __future__ import annotations
@@ -68,6 +76,19 @@ CAP_NOTE = (
     "current view for what is happening now. If the question asks about something that appears in neither, "
     "it cannot be answered from the video.\n"
 )
+
+NOTE_PROMPTS = {
+    "desc": (
+        "These frames were taken from earlier in the video at the times shown. Describe what they show: the people, "
+        "the objects and where they are, what the hands are doing, and any visible text. Be concrete and brief "
+        "(at most three sentences)."
+    ),
+    "qdesc": (
+        "These frames were taken from earlier in the video at the times shown. Describe what they show that is "
+        "relevant to this question: {question}\nMention the objects, where they are, and the actions. If the frames "
+        "do not show what the question asks about, say so. Do not guess (at most three sentences)."
+    ),
+}
 
 LOCATE_PROMPT = (
     "Question: {question}\nOptions: {options}\nDo not answer the question yet. Which numbered clip of the timeline "
@@ -408,6 +429,66 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     }
 
 
+_routes: dict[str, dict] = {}
+
+
+def evaluate_cascade(args, qa: KFSModel, scorer: ClipScorer, anno: dict) -> dict[str, Any]:
+    """L0 -> L1 -> L2 for one question (see the module docstring); returns the record of the final level."""
+    if not _routes:
+        _routes.update(json.load(open(args.cascade)))
+    key = f"{anno['task']}:{anno['id']}"
+    video_path = os.path.join(args.chunked_dir, f"{anno['id']}.mp4")
+    ele = {"video": video_path, "fps": float(args.fps)}
+    plan = _build_sampling_plan(ele, last_nframes=args.recent)
+    full = plan.full_indices
+    recent, hist = full[-args.recent:], full[:-args.recent]
+    frames = _resize_like_fetch_video(_decode_indices(video_path, plan.backend, recent), ele, plan.sampled_nframes_full, image_patch_size=14)
+    recent_block: VisionBlock = [qa.encode_vision([to_pil(fr)]) for fr in frames]
+    question = build_qwen25_prompt(anno["task"], anno)
+    n_opt = len(anno["options"])
+    cur = f"Current view (the latest {len(recent)} seconds):\n"
+    rec: dict[str, Any] = {"p_past": _routes[key]["p_past"], "level": 0, "note": "", "lookback_ts": []}
+
+    out = qa.generate_segments([recent_block], question, n_opt)
+    rec.update(response_l0=out["answer"], p_opts_l0=out["p_opts"])
+    caps = timeline_captions(args.captions, anno["video"], full[-1] / plan.raw_fps)
+    timeline = format_timeline(caps)
+    if timeline and (rec["p_past"] >= args.route_th or max(out["p_opts"]) < args.tau0):
+        rec["level"] = 1
+        out = qa.generate_segments([timeline + cur, recent_block], question, n_opt)
+        rec.update(response_l1=out["answer"], p_opts_l1=out["p_opts"])
+        if max(out["p_opts"]) < args.tau1 and hist:
+            pos, _ = select_history(argparse.Namespace(k=args.lookback_k, select="clip"), scorer, anno, video_path, full, hist)
+            chosen = [hist[p] for p in pos]
+            lb = _resize_like_fetch_video(_decode_indices(video_path, plan.backend, chosen), ele, plan.sampled_nframes_full, image_patch_size=14)
+            ts = [i / plan.raw_fps for i in chosen]
+            segs: list = []
+            for fr, t in zip(lb, ts):
+                segs += [f"[{t:.0f}s] ", [qa.encode_vision([to_pil(fr)])], "\n"]
+            max_new, qa.max_new_tokens = qa.max_new_tokens, args.note_tokens
+            note = qa.generate_segments(segs, NOTE_PROMPTS[args.note_mode].format(question=anno["question"].strip()), n_opt)["answer"]
+            qa.max_new_tokens = max_new
+            stamp = ", ".join(f"{t:.0f}s" for t in ts)
+            look = f"A closer look at frames retrieved from earlier ({stamp}): {note.strip()}\n"
+            out = qa.generate_segments([timeline + look + cur, recent_block], question, n_opt)
+            rec.update(level=2, note=note, lookback_ts=[round(t, 2) for t in ts])
+    return {
+        "id": anno["id"],
+        "video": anno["video"],
+        "task": anno["task"],
+        "question": anno["question"],
+        "response": out["answer"],
+        "ground_truth": chr(65 + anno["gt"]),
+        "p_opts": out["p_opts"],
+        "query_ts": round(full[-1] / plan.raw_fps, 2),
+        "n_captions": len(caps),
+        "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if rec["level"] else 0,
+        "num_vision_tokens": out["num_vision_tokens"],
+        "select_time": 0.0,
+        **rec,
+    }
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model_path", default="Qwen/Qwen2.5-VL-7B-Instruct")
@@ -430,6 +511,14 @@ def main() -> None:
     ap.add_argument("--retain", choices=["recency", "surprise"], default="recency")
     ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
     ap.add_argument("--foreign_timeline", action="store_true", help="control: caption texts from another video")
+    ap.add_argument("--cascade", default="", help="route.json from kfs/route.py: progressive memory access")
+    ap.add_argument("--route_th", type=float, default=0.5, help="L1 when p_past >= route_th")
+    ap.add_argument("--tau0", type=float, default=0.5, help="L1 when L0 max option prob < tau0")
+    ap.add_argument("--tau1", type=float, default=0.6, help="L2 when L1 max option prob < tau1")
+    ap.add_argument("--lookback_k", type=int, default=4)
+    ap.add_argument("--note_mode", choices=list(NOTE_PROMPTS), default="desc")
+    ap.add_argument("--note_tokens", type=int, default=128)
+    ap.add_argument("--keys", default="", help="json list of '<task>:<id>' to evaluate (subset runs)")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
@@ -440,6 +529,7 @@ def main() -> None:
     assert not args.recall or (args.captions and args.k == 0), "--recall needs --captions and no history keyframes"
     assert not args.budget or args.captions, "--budget needs --captions"
     assert not args.foreign_timeline or args.captions, "--foreign_timeline needs --captions"
+    assert not args.cascade or (args.captions and args.k == 0), "--cascade needs --captions and no history keyframes"
     args.surprisal = args.surprisal or args.captions.rstrip("/") + "_surprisal"
 
     annos = json.load(open(args.anno_path))
@@ -449,10 +539,14 @@ def main() -> None:
     }
     if args.limit:
         groups = {g: v[: args.limit] for g, v in groups.items()}
+    if args.keys:
+        keep = set(json.load(open(args.keys)))
+        groups = {g: [a for a in v if f"{a['task']}:{a['id']}" in keep] for g, v in groups.items()}
     print(json.dumps(vars(args)), {g: len(v) for g, v in groups.items()}, flush=True)
 
     qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
-    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if args.select.startswith("clip") or args.recall else None
+    need_clip = args.select.startswith("clip") or args.recall or args.cascade
+    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if need_clip else None
 
     os.makedirs(args.result_dir, exist_ok=True)
     ckpt = os.path.join(args.result_dir, "results_incremental.jsonl")
@@ -465,7 +559,7 @@ def main() -> None:
                 key = f"{anno['task']}:{anno['id']}"
                 if key in done:
                     continue
-                r = evaluate_one(args, qa, scorer, anno)
+                r = (evaluate_cascade if args.cascade else evaluate_one)(args, qa, scorer, anno)
                 results[g].append(r)
                 fh.write(json.dumps({**r, "_key": key}, ensure_ascii=False) + "\n")
                 fh.flush()
@@ -480,6 +574,8 @@ def main() -> None:
     metrics["vis_tokens_mean"] = float(np.mean([r["num_vision_tokens"] for r in allr]))
     metrics["select_time_mean"] = float(np.mean([r["select_time"] for r in allr]))
     metrics["timeline_tokens_mean"] = float(np.mean([r.get("timeline_tokens", 0) for r in allr]))
+    if args.cascade:
+        metrics.update({f"l{i}_rate": float(np.mean([r["level"] == i for r in allr])) for i in (1, 2)})
     print(json.dumps({k: round(v, 2) for k, v in metrics.items()}, indent=1), flush=True)
     json.dump({"config": vars(args), "metrics": metrics, "summary": summary}, open(os.path.join(args.result_dir, "summary.json"), "w"), indent=1)
     rxlib.write_result(metrics, selection="final", n_eval=1, protocol="ovo-rtbt")

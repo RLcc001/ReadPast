@@ -17,7 +17,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from eval_ovo_kfs import KFSModel  # noqa: E402
+from eval_ovo_kfs import BACKWARD_TASKS, REAL_TIME_TASKS, KFSModel  # noqa: E402
 
 import torch  # noqa: E402
 
@@ -56,7 +56,7 @@ def main() -> None:
     words = {w: sorted({tok.encode(s, add_special_tokens=False)[0] for s in (w, w.capitalize())}) for w in ("past", "now")}
     print(json.dumps(vars(args)), words, flush=True)
 
-    annos = json.load(open(args.anno_path))
+    annos = [a for a in json.load(open(args.anno_path)) if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
     out, t0 = {}, time.perf_counter()
     for a in annos:
         pp, mass = p_past(qa, a["question"], words)
