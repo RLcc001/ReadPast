@@ -22,6 +22,9 @@ and older ones are admitted newest-first (--retain recency), by surprisal under 
 (--retain surprise, scores from kfs/surprisal.py) or by BM25 relevance to the question and its options
 (--retain relevance; ties newest-first), then shown in time order.
 Control (--foreign_timeline): same clips and timestamps, but the caption texts come from another source video.
+Memory flush (--flush): at query time the partial clip after the last complete caption clip (up to the query) is
+captioned with the same captioner prompt and appended as the newest timeline entry, so memory + recent window cover
+the whole past (clips shorter than --flush_min seconds are skipped).
 Progressive memory access (--cascade ROUTE_JSON, needs --captions):
   L0  SimpleStream (recent frames only), always.
   L1  + caption timeline, when the question is about the past (p_past from kfs/route.py >= --route_th) or L0 is
@@ -277,6 +280,30 @@ def timeline_captions(cap_dir: str, video: str, query_ts: float) -> list[dict]:
     return [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6 and not is_no_change(c["text"])]
 
 
+def flush_caption(args, qa: KFSModel, video_path: str, raw_fps: float, caps: list[dict], q_ts: float) -> dict | None:
+    """Caption [end of the last complete clip in `caps` (causal), query time] with kfs/caption_ovo.py's prompt."""
+    from caption_ovo import PROMPT  # lazy: caption_ovo imports this module
+
+    import decord
+
+    t0 = max((c["t1"] for c in caps), default=0)
+    span = q_ts - t0
+    if span < args.flush_min:
+        return None
+    n = max(2, min(8, int(span)))
+    vr = decord.VideoReader(video_path)
+    idx = [min(int((t0 + (i + 0.5) * span / n) * raw_fps), len(vr) - 1) for i in range(n)]
+    frames = torch.from_numpy(vr.get_batch(idx).asnumpy()).permute(0, 3, 1, 2).float()
+    h, w = frames.shape[-2:]
+    hh, ww = smart_resize(h, w, factor=28, min_pixels=4 * 28 * 28, max_pixels=256 * 28 * 28)
+    frames = TF.resize(frames, [hh, ww], interpolation=InterpolationMode.BICUBIC, antialias=True)
+    block = [qa.encode_vision([to_pil(f)]) for f in frames]
+    max_new, qa.max_new_tokens = qa.max_new_tokens, 96
+    text = qa.generate_segments([block], PROMPT.format(n=n, seg=round(span), t0=t0, t1=round(q_ts)), 1)["answer"]
+    qa.max_new_tokens = max_new
+    return {"t0": t0, "t1": round(q_ts), "text": text}
+
+
 def foreign_captions(cap_dir: str, video: str, caps: list[dict]) -> list[dict]:
     """Control: keep the clips and timestamps of `caps` but take the texts from another source video that has at
     least as many informative captions (chosen deterministically from the video name)."""
@@ -411,6 +438,11 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     n_caps_all = len(caps)
     if args.foreign_timeline:
         caps = foreign_captions(args.captions, anno["video"], caps)
+    flush = None
+    if args.flush and args.captions:
+        flush = flush_caption(args, qa, video_path, plan.raw_fps, caps, full[-1] / plan.raw_fps)
+        if flush:
+            caps = caps + [flush]
     if args.budget:
         query = anno["question"] + " " + " ".join(anno["options"])
         caps = retain_captions(args, qa.processor.tokenizer, anno["video"], caps, query)
@@ -451,6 +483,7 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         "n_captions": len(caps),
         "n_captions_all": n_caps_all,
         "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0,
+        "flush": flush["text"] if flush else "",
         "recall_clip": rclip,
         "recall_ts": [round(i / plan.raw_fps, 2) for i in recalled],
         "locate_answer": locate_answer,
@@ -542,6 +575,8 @@ def main() -> None:
     ap.add_argument("--retain", choices=["recency", "surprise", "relevance"], default="recency")
     ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
     ap.add_argument("--foreign_timeline", action="store_true", help="control: caption texts from another video")
+    ap.add_argument("--flush", action="store_true", help="caption the partial clip up to the query time")
+    ap.add_argument("--flush_min", type=float, default=2.0)
     ap.add_argument("--cascade", default="", help="route.json from kfs/route.py: progressive memory access")
     ap.add_argument("--route_th", type=float, default=0.5, help="L1 when p_past >= route_th")
     ap.add_argument("--tau0", type=float, default=0.5, help="L1 when L0 max option prob < tau0")
