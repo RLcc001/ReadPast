@@ -17,6 +17,9 @@ by the query time is put before the recent block (ss layout only); --cap_note ad
 Timeline-indexed recall (--recall): the model first reads the numbered timeline + current view and names the
 clip that holds the evidence (0 = none); the CLIP top-`recall_k` frames inside that clip are then shown between
 the timeline and the current view. Questions answered with 0 get exactly the --captions prompt.
+Bounded memory (--budget N): when the caption lines exceed N tokens, the latest `keep_recent` captions stay
+and older ones are admitted newest-first (--retain recency) or by surprisal under the earlier memory
+(--retain surprise, scores from kfs/surprisal.py), then shown in time order.
 """
 
 from __future__ import annotations
@@ -232,6 +235,8 @@ def build_segments(layout: str, hist_blocks: VisionBlock, hist_ts: list[float], 
 
 
 _captions: dict[str, list[dict]] = {}
+_surprisal: dict[str, dict[str, float]] = {}
+TIMELINE_HEADER = "Timeline of the video so far (automatic captions of earlier clips):\n"
 
 
 def is_no_change(text: str) -> bool:
@@ -247,11 +252,37 @@ def timeline_captions(cap_dir: str, video: str, query_ts: float) -> list[dict]:
     return [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6 and not is_no_change(c["text"])]
 
 
+def timeline_line(c: dict, num: int | None = None) -> str:
+    return f"{f'[{num}] ' if num else ''}[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n"
+
+
 def format_timeline(caps: list[dict], numbered: bool = False) -> str:
     if not caps:
         return ""
-    lines = "".join(f"{f'[{i + 1}] ' if numbered else ''}[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n" for i, c in enumerate(caps))
-    return "Timeline of the video so far (automatic captions of earlier clips):\n" + lines
+    return TIMELINE_HEADER + "".join(timeline_line(c, i + 1 if numbered else None) for i, c in enumerate(caps))
+
+
+def retain_captions(args, tok, video: str, caps: list[dict]) -> list[dict]:
+    """Keep the caption lines within `budget` tokens: the latest `keep_recent` always stay, older ones are
+    admitted newest-first (recency) or most-surprising-first (surprise) while they fit."""
+    lens = [len(tok.encode(timeline_line(c), add_special_tokens=False)) for c in caps]
+    if sum(lens) <= args.budget or len(caps) <= args.keep_recent:
+        return caps
+    n_old = len(caps) - args.keep_recent
+    keep = set(range(n_old, len(caps)))
+    used = sum(lens[i] for i in keep)
+    if args.retain == "recency":
+        order = list(range(n_old - 1, -1, -1))
+    else:
+        if video not in _surprisal:
+            _surprisal[video] = json.load(open(os.path.join(args.surprisal, video.replace("/", "__") + ".json")))["nll"]
+        nll = _surprisal[video]
+        order = sorted(range(n_old), key=lambda i: -nll[str(caps[i]["t0"])])
+    for i in order:
+        if used + lens[i] <= args.budget:
+            keep.add(i)
+            used += lens[i]
+    return [caps[i] for i in sorted(keep)]
 
 
 def locate_and_recall(args, qa: KFSModel, scorer: ClipScorer, anno: dict, raw_fps: float, video_path: str,
@@ -307,6 +338,9 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     if chosen and args.hist_note:
         question = HIST_NOTE + question
     caps = timeline_captions(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else []
+    n_caps_all = len(caps)
+    if args.budget:
+        caps = retain_captions(args, qa.processor.tokenizer, anno["video"], caps)
     timeline = format_timeline(caps)
     rclip, recalled, locate_answer, locate_time = 0, [], "", 0.0
     if args.recall and caps:
@@ -342,6 +376,7 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         "num_frames": len(blocks) + len(recalled),
         "num_vision_tokens": out["num_vision_tokens"],
         "n_captions": len(caps),
+        "n_captions_all": n_caps_all,
         "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0,
         "recall_clip": rclip,
         "recall_ts": [round(i / plan.raw_fps, 2) for i in recalled],
@@ -369,6 +404,10 @@ def main() -> None:
     ap.add_argument("--cap_note", action="store_true", help="prefix the question with an abstention hint when a timeline is shown")
     ap.add_argument("--recall", action="store_true", help="timeline-indexed recall of frames (needs --captions)")
     ap.add_argument("--recall_k", type=int, default=2, help="frames recalled from the located clip")
+    ap.add_argument("--budget", type=int, default=0, help="token budget of the caption lines (0 = unbounded)")
+    ap.add_argument("--keep_recent", type=int, default=4, help="latest captions always kept under a budget")
+    ap.add_argument("--retain", choices=["recency", "surprise"], default="recency")
+    ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
@@ -377,6 +416,8 @@ def main() -> None:
     args = ap.parse_args()
     assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"
     assert not args.recall or (args.captions and args.k == 0), "--recall needs --captions and no history keyframes"
+    assert not args.budget or args.captions, "--budget needs --captions"
+    args.surprisal = args.surprisal or args.captions.rstrip("/") + "_surprisal"
 
     annos = json.load(open(args.anno_path))
     groups = {
