@@ -5,7 +5,10 @@ equals running the cascade's first two levels. Prints the fixed setting (th=0.5,
 paired video-bootstrap CIs, a 2-fold-by-video CV over (th, tau0), and writes the L2 trigger key list
 (L1 questions whose L1 max option prob < tau1) for kfs/eval_ovo_kfs.py --keys.
 
-usage: python3 kfs/analyze_route.py [--route route_q25] [--tau1 0.6] [--keys_out cache/cascade_keys.json]
+With --l2 RUN...: cascade runs on the trigger keys (eval_ovo_kfs.py --cascade --keys) replace the L1 answers of
+the questions that reach L2; their recomputed L0/L1 answers are checked against the base/mem runs.
+
+usage: python3 kfs/analyze_route.py [--route route_q25] [--tau1 0.6] [--keys_out cache/cascade_keys.json] [--l2 RUN ...]
 """
 
 import argparse
@@ -54,6 +57,7 @@ def main():
     ap.add_argument("--tau0", type=float, default=0.5)
     ap.add_argument("--tau1", type=float, default=0.6)
     ap.add_argument("--keys_out", default="")
+    ap.add_argument("--l2", nargs="*", default=[])
     args = ap.parse_args()
 
     route = json.load(open(sorted(glob.glob(f"{RUNS}/*-{args.route}/out/route.json"))[-1]))
@@ -126,6 +130,28 @@ def main():
     if args.keys_out:
         json.dump(trig, open(args.keys_out, "w"))
         print("wrote", args.keys_out)
+
+    for name in args.l2:
+        l2 = load(name, RUNS)
+        same0 = sum(l2[k]["response_l0"] == base[k]["response"] for k in l2)
+        same1 = sum(l2[k].get("response_l1") == mem[k]["response"] for k in l2)
+        lv = {i: sum(r["level"] == i for r in l2.values()) for i in (0, 1, 2)}
+        print(f"\n=== L2 run {name}: n={len(l2)} levels {lv}; L0 == {args.base}: {same0}/{len(l2)}, L1 == {args.mem}: {same1}/{len(l2)}")
+        print(row(args.mem, sm, sb))
+        for lab, th, tau0 in (("module 1", args.th, args.tau0), ("router only", args.th, 0.0)):
+            m1 = combine(keys, th, tau0)
+            full = {k: (l2[k]["correct"] if k in l2 and l2[k]["level"] == 2 and l1(k, th, tau0) else m1[k]) for k in keys}
+            s1, sf = scores(m1, tasks), scores(full, tasks)
+            n2 = sum(k in l2 and l2[k]["level"] == 2 and l1(k, th, tau0) for k in keys)
+            print(row(f"{lab}", s1, sb))
+            print(row(f"{lab} + L2 ({n2} q)", sf, sb) + f"  vs {lab}: {sf['avg'] - s1['avg']:+.2f}")
+            for ref_name, ref in ((lab, m1), (args.mem, m)):
+                for flab, f in (("avg", lambda s: s["avg"]), ("noHLD", no_hld)):
+                    lo, hi, p = boot(keys, tasks, video, ref, full, f)
+                    print(f"   + L2 - {ref_name:11s} [{flab:5s}] {f(sf) - f(scores(ref, tasks)):+.2f}  CI [{lo:+.2f}, {hi:+.2f}]  P(<=0) {p:.3f}")
+            for grp, ts in (("BT", BACKWARD), ("RT", REALTIME)):
+                ks = [k for k in keys if tasks[k] in ts]
+                print(f"   flips vs {lab} {grp}: +{sum(full[k] > m1[k] for k in ks)} / -{sum(full[k] < m1[k] for k in ks)}")
 
 
 if __name__ == "__main__":
