@@ -5,8 +5,13 @@ Each source video is captioned once from its longest chunk (the question with th
 Only full clips are captioned. Output per video: {out_dir}/{video with '/' -> '__'}.json
   {"video", "chunk", "fps", "duration", "seg", "captions": [{"t0", "t1", "text"}, ...]}
 
+Modes:
+  plain : each clip is described on its own
+  delta : the first clip is described in full; later clips get the latest `ctx` informative captions as text
+          and describe only what changed ("No change." when nothing did; the timeline skips those)
+
 usage (one shard per rx job):
-  python kfs/caption_ovo.py --seg 16 --shard 0 --nshard 8
+  python kfs/caption_ovo.py --seg 16 --shard 0 --nshard 8 [--mode delta]
 """
 
 from __future__ import annotations
@@ -21,7 +26,7 @@ from collections import defaultdict
 os.environ.setdefault("FORCE_QWENVL_VIDEO_READER", "decord")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from eval_ovo_kfs import KFSModel, to_pil  # noqa: E402
+from eval_ovo_kfs import KFSModel, is_no_change, to_pil  # noqa: E402
 
 import decord  # noqa: E402
 import torch  # noqa: E402
@@ -35,6 +40,15 @@ PROMPT = (
     "In one or two sentences, describe what happens in the clip: the people, the objects that are handled "
     "or clearly visible, the actions, the location, and any readable text. Be concrete and do not speculate."
 )
+# delta mode: the latest `ctx` informative captions are shown as text before the frames
+DELTA_CONTEXT = "Earlier descriptions of this video:\n{lines}"
+DELTA_PROMPT = (
+    "These {n} frames are sampled in order from the next {seg}-second clip of the video ({t0}s to {t1}s). "
+    "Describe only what is new or has changed compared with the earlier descriptions: objects that are picked up, "
+    "put down or moved (say from where to where), people or objects that appear or leave, new actions, a change of "
+    "location, and newly readable text. Do not repeat what the earlier descriptions already say. Use one or two "
+    "sentences, be concrete and do not speculate. If nothing notable has changed, answer exactly: No change."
+)
 
 
 def video_key(video: str) -> str:
@@ -46,7 +60,9 @@ def main() -> None:
     ap.add_argument("--model_path", default="Qwen/Qwen2.5-VL-7B-Instruct")
     ap.add_argument("--anno_path", default="/workspace/datasets/streaming/ovo_bench/ovo_bench_new.json")
     ap.add_argument("--chunked_dir", default="/workspace/datasets/streaming/ovo_bench/chunked_videos")
-    ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}")
+    ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}[_delta]")
+    ap.add_argument("--mode", choices=["plain", "delta"], default="plain")
+    ap.add_argument("--ctx", type=int, default=3, help="delta mode: earlier informative captions shown as context")
     ap.add_argument("--seg", type=int, default=16, help="clip length in seconds")
     ap.add_argument("--nframes", type=int, default=8, help="frames per clip, evenly spaced")
     ap.add_argument("--max_pixels", type=int, default=256 * 28 * 28, help="per-frame pixel budget (~256 visual tokens)")
@@ -55,7 +71,8 @@ def main() -> None:
     ap.add_argument("--nshard", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="first N videos of this shard (smoke tests)")
     args = ap.parse_args()
-    out_dir = args.out_dir or f"/workspace/streamkv/cache/captions_q25_s{args.seg}"
+    suffix = "_delta" if args.mode == "delta" else ""
+    out_dir = args.out_dir or f"/workspace/streamkv/cache/captions_q25_s{args.seg}{suffix}"
     os.makedirs(out_dir, exist_ok=True)
 
     annos = [a for a in json.load(open(args.anno_path)) if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
@@ -90,11 +107,19 @@ def main() -> None:
             frames = torch.from_numpy(vr.get_batch(idx).asnumpy()).permute(0, 3, 1, 2).float()
             frames = TF.resize(frames, [hh, ww], interpolation=InterpolationMode.BICUBIC, antialias=True)
             block = [qa.encode_vision([to_pil(f)]) for f in frames]
-            r = qa.generate_segments([block], PROMPT.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1), 1)
+            prev = [c for c in caps if not is_no_change(c["text"])][-args.ctx :]
+            if args.mode == "delta" and prev:
+                lines = "".join(f"[{c['t0']}s-{c['t1']}s] {c['text']}\n" for c in prev)
+                segments = [DELTA_CONTEXT.format(lines=lines), block]
+                prompt = DELTA_PROMPT.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1)
+            else:
+                segments, prompt = [block], PROMPT.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1)
+            r = qa.generate_segments(segments, prompt, 1)
             caps.append({"t0": t0, "t1": t1, "text": r["answer"]})
             stats["clips"] += 1
             stats["gen_time"] += r["generate_time"]
-        rec = {"video": video, "chunk": chunk, "fps": fps, "duration": duration, "seg": args.seg, "captions": caps}
+        rec = {"video": video, "chunk": chunk, "fps": fps, "duration": duration, "seg": args.seg, "mode": args.mode,
+               "captions": caps}
         tmp = f"{out}.{os.getpid()}.tmp"
         json.dump(rec, open(tmp, "w"), ensure_ascii=False, indent=0)
         os.replace(tmp, out)

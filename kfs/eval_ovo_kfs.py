@@ -14,6 +14,9 @@ History frames can be shrunk (--hist_scale, fraction of the recent frames' pixel
 question can be prefixed with an evidence-skeptical note about the history (--hist_note).
 Text memory (--captions DIR from kfs/caption_ovo.py): a timeline of the captions of clips that ended
 by the query time is put before the recent block (ss layout only); --cap_note adds an abstention hint.
+Timeline-indexed recall (--recall): the model first reads the numbered timeline + current view and names the
+clip that holds the evidence (0 = none); the CLIP top-`recall_k` frames inside that clip are then shown between
+the timeline and the current view. Questions answered with 0 get exactly the --captions prompt.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from typing import Any
@@ -58,6 +62,12 @@ CAP_NOTE = (
     "The timeline was generated automatically and may miss details. Use it for what happened earlier and the "
     "current view for what is happening now. If the question asks about something that appears in neither, "
     "it cannot be answered from the video.\n"
+)
+
+LOCATE_PROMPT = (
+    "Question: {question}\nOptions: {options}\nDo not answer the question yet. Which numbered clip of the timeline "
+    "shows the evidence needed to answer it? Reply with the clip number only. Reply 0 if the current view alone is "
+    "enough, or if no clip in the timeline is related to the question."
 )
 
 VisionBlock = list[tuple[torch.Tensor, torch.Tensor]]  # [(embeds, grid_thw row)] for one <vision_start> block
@@ -224,16 +234,46 @@ def build_segments(layout: str, hist_blocks: VisionBlock, hist_ts: list[float], 
 _captions: dict[str, list[dict]] = {}
 
 
-def caption_timeline(cap_dir: str, video: str, query_ts: float) -> tuple[str, int]:
-    """Timeline text of the clips that ended by `query_ts` (empty if none) and the number of clips used."""
+def is_no_change(text: str) -> bool:
+    """Delta captions answer "No change." for clips without news; the timeline skips them."""
+    return text.strip().lower().rstrip(".") == "no change"
+
+
+def timeline_captions(cap_dir: str, video: str, query_ts: float) -> list[dict]:
+    """Informative captions of the clips that ended by `query_ts`."""
     if video not in _captions:
         path = os.path.join(cap_dir, video.replace("/", "__") + ".json")
         _captions[video] = json.load(open(path))["captions"] if os.path.exists(path) else []
-    caps = [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6]
+    return [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6 and not is_no_change(c["text"])]
+
+
+def format_timeline(caps: list[dict], numbered: bool = False) -> str:
     if not caps:
-        return "", 0
-    lines = "".join(f"[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n" for c in caps)
-    return "Timeline of the video so far (automatic captions of earlier clips):\n" + lines, len(caps)
+        return ""
+    lines = "".join(f"{f'[{i + 1}] ' if numbered else ''}[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n" for i, c in enumerate(caps))
+    return "Timeline of the video so far (automatic captions of earlier clips):\n" + lines
+
+
+def locate_and_recall(args, qa: KFSModel, scorer: ClipScorer, anno: dict, raw_fps: float, video_path: str,
+                      full: list[int], hist: list[int], caps: list[dict], recent_block: VisionBlock) -> tuple[int, list[int], str]:
+    """Ask the model which timeline clip holds the evidence (0 = none); return it and the CLIP top frames inside it."""
+    segs = [format_timeline(caps, numbered=True) + f"Current view (the latest {args.recent} seconds):\n", recent_block]
+    opts = "; ".join(f"{chr(65 + i)}. {o}" for i, o in enumerate(anno["options"])) + ";"
+    max_new, qa.max_new_tokens = qa.max_new_tokens, 8
+    out = qa.generate_segments(segs, LOCATE_PROMPT.format(question=anno["question"], options=opts), len(anno["options"]))
+    qa.max_new_tokens = max_new
+    m = re.search(r"\d+", out["answer"])
+    k = int(m.group()) if m else 0
+    if not 1 <= k <= len(caps):
+        return 0, [], out["answer"]
+    c = caps[k - 1]
+    cand = [p for p, i in enumerate(hist) if c["t0"] <= i / raw_fps < c["t1"]]
+    if not cand:
+        return k, [], out["answer"]
+    img = scorer.image_feats(f"{anno['task']}_{anno['id']}", video_path, full)
+    sims = img[cand] @ scorer.text_feat(anno["question"])
+    top = sorted(cand[j] for j in np.argsort(-sims)[: args.recall_k])
+    return k, [hist[p] for p in top], out["answer"]
 
 
 def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> dict[str, Any]:
@@ -266,11 +306,25 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     question = build_qwen25_prompt(anno["task"], anno)
     if chosen and args.hist_note:
         question = HIST_NOTE + question
-    timeline, n_caps = caption_timeline(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else ("", 0)
-    if timeline:
+    caps = timeline_captions(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else []
+    timeline = format_timeline(caps)
+    rclip, recalled, locate_answer, locate_time = 0, [], "", 0.0
+    if args.recall and caps:
+        t0 = time.perf_counter()
+        rclip, recalled, locate_answer = locate_and_recall(
+            args, qa, scorer, anno, plan.raw_fps, video_path, full, hist, caps, blocks[len(chosen):])
+        locate_time = time.perf_counter() - t0
+    if recalled:
+        rframes = _decode_indices(video_path, plan.backend, recalled)
+        rframes = _resize_like_fetch_video(rframes, ele, plan.sampled_nframes_full, image_patch_size=14)
+        rblock: VisionBlock = [qa.encode_vision([to_pil(fr)]) for fr in rframes]
+        c = caps[rclip - 1]
+        segments = [timeline + f"Frames recalled from the timeline clip [{c['t0']}s-{c['t1']}s]:\n", rblock,
+                    f"\nCurrent view (the latest {len(recent)} seconds):\n"] + segments
+    elif timeline:
         segments = [timeline + f"Current view (the latest {len(recent)} seconds):\n"] + segments
-        if args.cap_note:
-            question = CAP_NOTE + question
+    if timeline and args.cap_note:
+        question = CAP_NOTE + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
         "id": anno["id"],
@@ -285,10 +339,14 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         "hist_ts": [round(t, 2) for t in hist_ts],
         "hist_scores": scores,
         "query_ts": round(full[-1] / plan.raw_fps, 2),
-        "num_frames": len(blocks),
+        "num_frames": len(blocks) + len(recalled),
         "num_vision_tokens": out["num_vision_tokens"],
-        "n_captions": n_caps,
+        "n_captions": len(caps),
         "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0,
+        "recall_clip": rclip,
+        "recall_ts": [round(i / plan.raw_fps, 2) for i in recalled],
+        "locate_answer": locate_answer,
+        "locate_time": locate_time,
         "select_time": select_time,
         "generate_time": out["generate_time"],
     }
@@ -309,6 +367,8 @@ def main() -> None:
     ap.add_argument("--hist_note", action="store_true", help="prefix the question with an evidence-skeptical note")
     ap.add_argument("--captions", default="", help="caption dir from kfs/caption_ovo.py (text memory)")
     ap.add_argument("--cap_note", action="store_true", help="prefix the question with an abstention hint when a timeline is shown")
+    ap.add_argument("--recall", action="store_true", help="timeline-indexed recall of frames (needs --captions)")
+    ap.add_argument("--recall_k", type=int, default=2, help="frames recalled from the located clip")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
@@ -316,6 +376,7 @@ def main() -> None:
     ap.add_argument("--limit", type=int, default=0, help="first N questions per task group (smoke tests)")
     args = ap.parse_args()
     assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"
+    assert not args.recall or (args.captions and args.k == 0), "--recall needs --captions and no history keyframes"
 
     annos = json.load(open(args.anno_path))
     groups = {
@@ -327,7 +388,7 @@ def main() -> None:
     print(json.dumps(vars(args)), {g: len(v) for g, v in groups.items()}, flush=True)
 
     qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
-    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if args.select.startswith("clip") else None
+    scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if args.select.startswith("clip") or args.recall else None
 
     os.makedirs(args.result_dir, exist_ok=True)
     ckpt = os.path.join(args.result_dir, "results_incremental.jsonl")
