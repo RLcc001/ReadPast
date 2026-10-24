@@ -126,7 +126,11 @@ def main() -> None:
             t1 = t0 + args.seg
             ts = [t0 + (i + 0.5) * args.seg / args.nframes for i in range(args.nframes)]
             idx = [min(int(t * fps), len(vr) - 1) for t in ts]
-            frames = torch.from_numpy(vr.get_batch(idx).asnumpy()).permute(0, 3, 1, 2).float()
+            try:
+                frames = torch.from_numpy(vr.get_batch(idx).asnumpy()).permute(0, 3, 1, 2).float()
+            except decord.DECORDError:  # corrupt stream (e.g. SB sample_332 after 240 s): no caption for this clip
+                print(f"{video}: undecodable clip {t0}-{t1}s, skipped", flush=True)
+                continue
             frames = TF.resize(frames, [hh, ww], interpolation=InterpolationMode.BICUBIC, antialias=True)
             block = [qa.encode_vision([to_pil(f)]) for f in frames]
             prev = [c for c in caps if not is_no_change(c["text"])][-args.ctx :]

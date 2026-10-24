@@ -104,7 +104,15 @@ def main() -> None:
                        "temporal_clue_type": q.get("temporal_clue_type", ""), "question": q["question"], "answer_gt": gt,
                        "p_past": routes[q["question_id"]]["p_past"], "level": 0, "note": "", "lookback_ts": []}
                 t0 = time.perf_counter()
-                block = recent_block(qa, video_path, ts, args.recent)
+                try:
+                    block = recent_block(qa, video_path, ts, args.recent)
+                except Exception as err:  # undecodable window: SimpleStream also records no answer (counted wrong)
+                    print(f"{key}: {err!r:.200}", flush=True)
+                    rec.update({f"{f}_{lv}" if lv else f: None for f in ("response", "p_opts") for lv in ("l0", "l1", "l1f", "")})
+                    rec.update({f"correct_{lv}" if lv else "correct": False for lv in ("l0", "l1", "l1f", "")}, timeline_tokens=0)
+                    fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+                    fh.flush()
+                    continue
                 out = qa.generate_segments([block], prompt, n_opt)
                 rec.update(response_l0=out["answer"], p_opts_l0=out["p_opts"])
                 caps = timeline_captions(args.captions, e["video_path"], ts)
