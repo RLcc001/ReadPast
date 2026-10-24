@@ -8,6 +8,8 @@ With --bench sb, the StreamingBench Real-Time videos are captioned up to their l
 
 Modes:
   plain : each clip is described on its own
+  memo  : like plain, but the captioner writes a memory note aimed at later questions (hand-object interactions and
+          where objects end up, object states, counts, other people, readable text), at most three sentences
   delta : the first clip is described in full; later clips get the latest `ctx` informative captions as text
           and describe only what changed ("No change." when nothing did; the timeline skips those)
 
@@ -41,6 +43,13 @@ PROMPT = (
     "In one or two sentences, describe what happens in the clip: the people, the objects that are handled "
     "or clearly visible, the actions, the location, and any readable text. Be concrete and do not speculate."
 )
+MEMO_PROMPT = (
+    "These {n} frames are sampled in order from a {seg}-second clip of a video ({t0}s to {t1}s). Write a short memory "
+    "note about this clip that would help answer questions about it later: what the person does with their hands, "
+    "which objects are picked up, put down or moved and where they end up, the states of things (on or off, open or "
+    "closed, full or empty), how many there are of something, who else appears and what they do, and any readable "
+    "text. Mention colors when they help identify objects. Use at most three sentences, be concrete and do not speculate."
+)
 # delta mode: the latest `ctx` informative captions are shown as text before the frames
 DELTA_CONTEXT = "Earlier descriptions of this video:\n{lines}"
 DELTA_PROMPT = (
@@ -65,7 +74,8 @@ def main() -> None:
     ap.add_argument("--sb_anno", default="/workspace/datasets/streaming/streamingbench/questions_real.json")
     ap.add_argument("--sb_video_dir", default="/workspace/datasets/streaming/streamingbench/videos")
     ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}[_delta][_sb]")
-    ap.add_argument("--mode", choices=["plain", "delta"], default="plain")
+    ap.add_argument("--mode", choices=["plain", "delta", "memo"], default="plain")
+    ap.add_argument("--max_realtime", type=float, default=0, help="only videos whose latest question is at most this (s)")
     ap.add_argument("--ctx", type=int, default=3, help="delta mode: earlier informative captions shown as context")
     ap.add_argument("--seg", type=int, default=16, help="clip length in seconds")
     ap.add_argument("--nframes", type=int, default=8, help="frames per clip, evenly spaced")
@@ -75,7 +85,7 @@ def main() -> None:
     ap.add_argument("--nshard", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="first N videos of this shard (smoke tests)")
     args = ap.parse_args()
-    suffix = ("_delta" if args.mode == "delta" else "") + ("_sb" if args.bench == "sb" else "")
+    suffix = ("" if args.mode == "plain" else f"_{args.mode}") + ("_sb" if args.bench == "sb" else "")
     out_dir = args.out_dir or f"/workspace/streamkv/cache/captions_q25_s{args.seg}{suffix}"
     os.makedirs(out_dir, exist_ok=True)
 
@@ -89,6 +99,8 @@ def main() -> None:
             if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS and (a["video"] not in longest or a["realtime"] > longest[a["video"]]["realtime"]):
                 longest[a["video"]] = {"path": os.path.join(args.chunked_dir, f"{a['id']}.mp4"), "realtime": a["realtime"]}
     # longest first, round-robin over shards so shards get similar total duration
+    if args.max_realtime:
+        longest = {v: x for v, x in longest.items() if x["realtime"] <= args.max_realtime}
     videos = sorted(longest, key=lambda v: -longest[v]["realtime"])[args.shard::args.nshard]
     if args.limit:
         videos = videos[: args.limit]
@@ -123,7 +135,8 @@ def main() -> None:
                 segments = [DELTA_CONTEXT.format(lines=lines), block]
                 prompt = DELTA_PROMPT.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1)
             else:
-                segments, prompt = [block], PROMPT.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1)
+                template = MEMO_PROMPT if args.mode == "memo" else PROMPT
+                segments, prompt = [block], template.format(n=args.nframes, seg=args.seg, t0=t0, t1=t1)
             r = qa.generate_segments(segments, prompt, 1)
             caps.append({"t0": t0, "t1": t1, "text": r["answer"]})
             stats["clips"] += 1
