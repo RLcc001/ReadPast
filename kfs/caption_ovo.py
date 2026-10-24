@@ -3,6 +3,7 @@
 Each source video is captioned once from its longest chunk (the question with the latest
 `realtime`), so a question at time T may use every caption whose clip ends at or before T.
 Only full clips are captioned. Output per video: {out_dir}/{video with '/' -> '__'}.json
+With --bench sb, the StreamingBench Real-Time videos are captioned up to their latest question time stamp.
   {"video", "chunk", "fps", "duration", "seg", "captions": [{"t0", "t1", "text"}, ...]}
 
 Modes:
@@ -60,7 +61,10 @@ def main() -> None:
     ap.add_argument("--model_path", default="Qwen/Qwen2.5-VL-7B-Instruct")
     ap.add_argument("--anno_path", default="/workspace/datasets/streaming/ovo_bench/ovo_bench_new.json")
     ap.add_argument("--chunked_dir", default="/workspace/datasets/streaming/ovo_bench/chunked_videos")
-    ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}[_delta]")
+    ap.add_argument("--bench", choices=["ovo", "sb"], default="ovo")
+    ap.add_argument("--sb_anno", default="/workspace/datasets/streaming/streamingbench/questions_real.json")
+    ap.add_argument("--sb_video_dir", default="/workspace/datasets/streaming/streamingbench/videos")
+    ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}[_delta][_sb]")
     ap.add_argument("--mode", choices=["plain", "delta"], default="plain")
     ap.add_argument("--ctx", type=int, default=3, help="delta mode: earlier informative captions shown as context")
     ap.add_argument("--seg", type=int, default=16, help="clip length in seconds")
@@ -71,15 +75,19 @@ def main() -> None:
     ap.add_argument("--nshard", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="first N videos of this shard (smoke tests)")
     args = ap.parse_args()
-    suffix = "_delta" if args.mode == "delta" else ""
+    suffix = ("_delta" if args.mode == "delta" else "") + ("_sb" if args.bench == "sb" else "")
     out_dir = args.out_dir or f"/workspace/streamkv/cache/captions_q25_s{args.seg}{suffix}"
     os.makedirs(out_dir, exist_ok=True)
 
-    annos = [a for a in json.load(open(args.anno_path)) if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
-    longest: dict[str, dict] = {}
-    for a in annos:
-        if a["video"] not in longest or a["realtime"] > longest[a["video"]]["realtime"]:
-            longest[a["video"]] = a
+    longest: dict[str, dict] = {}  # video -> {"path", "realtime"}: the clip to caption and how far
+    if args.bench == "sb":
+        for e in json.load(open(args.sb_anno)):
+            ts = max(sum(int(x) * 60 ** i for i, x in enumerate(reversed(q["time_stamp"].split(":")))) for q in e["questions"])
+            longest[e["video_path"]] = {"path": os.path.join(args.sb_video_dir, e["video_path"]), "realtime": ts}
+    else:
+        for a in json.load(open(args.anno_path)):
+            if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS and (a["video"] not in longest or a["realtime"] > longest[a["video"]]["realtime"]):
+                longest[a["video"]] = {"path": os.path.join(args.chunked_dir, f"{a['id']}.mp4"), "realtime": a["realtime"]}
     # longest first, round-robin over shards so shards get similar total duration
     videos = sorted(longest, key=lambda v: -longest[v]["realtime"])[args.shard::args.nshard]
     if args.limit:
@@ -93,10 +101,12 @@ def main() -> None:
         out = os.path.join(out_dir, f"{video_key(video)}.json")
         if os.path.exists(out):
             continue
-        chunk = os.path.join(args.chunked_dir, f"{longest[video]['id']}.mp4")
+        chunk = longest[video]["path"]
         vr = decord.VideoReader(chunk)
         fps = float(vr.get_avg_fps())
         duration = len(vr) / fps
+        if args.bench == "sb":
+            duration = min(duration, float(longest[video]["realtime"]))
         h, w = vr[0].shape[:2]
         hh, ww = smart_resize(h, w, factor=28, min_pixels=4 * 28 * 28, max_pixels=args.max_pixels)
         caps = []
