@@ -5,7 +5,9 @@ SimpleStream's eval_streamingbench.py, so L0 reproduces its r4 run); L1 = captio
 (only when captions exist before the question, otherwise L1 = L0); L2 = look-back note (kfs/eval_ovo_kfs.py),
 run when module 1 sends the question to L1 (p_past >= route_th or L0 max p < tau0) and L1 max p < tau1.
 Because L0 and L1 are recorded for every question, r4, cap16 (always L1), module 1 variants and module 1 + L2
-are all derived offline from one run (kfs/analyze_sb.py).
+are all derived offline from one run (kfs/analyze_sb.py). With --focus_budget N, a focused L1 (response_l1f: the
+latest --focus_keep captions + BM25-relevant ones within N tokens, kfs/eval_ovo_kfs.py --retain relevance) is
+also recorded whenever the timeline is longer than N; otherwise it equals L1.
 
 usage: python kfs/eval_sb_kfs.py --result_dir OUT --captions cache/captions_q25_s16_sb --route ROUTE_JSON
        [--note_mode desc] [--shard i --nshard n]
@@ -25,6 +27,7 @@ os.environ.setdefault("QWEN_EXACT_RECENT_DECODE", "1")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from eval_ovo_kfs import (  # noqa: E402
     NOTE_PROMPTS,
+    retain_captions,
     SS_ROOT,
     ClipScorer,
     KFSModel,
@@ -63,6 +66,8 @@ def main() -> None:
     ap.add_argument("--lookback_k", type=int, default=4)
     ap.add_argument("--note_mode", choices=list(NOTE_PROMPTS), default="desc")
     ap.add_argument("--note_tokens", type=int, default=128)
+    ap.add_argument("--focus_budget", type=int, default=500, help="0 disables the focused L1")
+    ap.add_argument("--focus_keep", type=int, default=2)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_sb")
     ap.add_argument("--max_new_tokens", type=int, default=256)
@@ -102,7 +107,8 @@ def main() -> None:
                 block = recent_block(qa, video_path, ts, args.recent)
                 out = qa.generate_segments([block], prompt, n_opt)
                 rec.update(response_l0=out["answer"], p_opts_l0=out["p_opts"])
-                timeline = format_timeline(timeline_captions(args.captions, e["video_path"], ts))
+                caps = timeline_captions(args.captions, e["video_path"], ts)
+                timeline = format_timeline(caps)
                 cur = f"Current view (the latest {args.recent} seconds):\n"
                 if timeline:
                     out1 = qa.generate_segments([timeline + cur, block], prompt, n_opt)
@@ -110,6 +116,13 @@ def main() -> None:
                     out1 = out
                 rec.update(response_l1=out1["answer"], p_opts_l1=out1["p_opts"],
                            timeline_tokens=len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0)
+                out1f = out1
+                if args.focus_budget and timeline:
+                    focus = argparse.Namespace(budget=args.focus_budget, keep_recent=args.focus_keep, retain="relevance")
+                    fcaps = retain_captions(focus, qa.processor.tokenizer, e["video_path"], caps, q["question"] + " " + " ".join(q["options"]))
+                    if len(fcaps) < len(caps):
+                        out1f = qa.generate_segments([format_timeline(fcaps) + cur, block], prompt, n_opt)
+                rec.update(response_l1f=out1f["answer"], p_opts_l1f=out1f["p_opts"])
                 to_l1 = bool(timeline) and (rec["p_past"] >= args.route_th or max(out["p_opts"]) < args.tau0)
                 hist = [s for s in hist_sec if s < ts - args.recent]
                 final = out1 if to_l1 else out
@@ -134,7 +147,7 @@ def main() -> None:
                     final = qa.generate_segments([timeline + look + cur, block], prompt, n_opt)
                     rec.update(level=2, note=note, lookback_ts=chosen, response_l2=final["answer"], p_opts_l2=final["p_opts"])
                 rec.update(response=final["answer"], p_opts=final["p_opts"], time=time.perf_counter() - t0)
-                for lv in ("l0", "l1", ""):
+                for lv in ("l0", "l1", "l1f", ""):
                     r = rec.get(f"response_{lv}" if lv else "response")
                     rec[f"correct_{lv}" if lv else "correct"] = extract_mcq_answer(r) == gt
                 fh.write(json.dumps(rec, ensure_ascii=False) + "\n")

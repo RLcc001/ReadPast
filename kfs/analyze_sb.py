@@ -61,6 +61,12 @@ def main():
         "router only": lambda r: r["correct_l1"] if l1_ro(r) else r["correct_l0"],
         "router only + L2": lambda r: (r["correct"] if r["level"] == 2 else r["correct_l1"]) if l1_ro(r) else r["correct_l0"],
     }
+    if all("correct_l1f" in r for r in rows):
+        variants.update({
+            "focused (always L1f)": lambda r: r["correct_l1f"],
+            "module 1 + focused": lambda r: r["correct_l1f"] if l1_m1(r) else r["correct_l0"],
+            "router only + focused": lambda r: r["correct_l1f"] if l1_ro(r) else r["correct_l0"],
+        })
     groups = defaultdict(list)
     for r in rows:
         groups[r["task_type"]].append(r)
