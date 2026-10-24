@@ -12,6 +12,8 @@ Layouts:    ss      all frames in one vision block, chronological (SimpleStream'
             tagged  history frames each with a timestamp, then "current view" + recent block
 History frames can be shrunk (--hist_scale, fraction of the recent frames' pixels) and the
 question can be prefixed with an evidence-skeptical note about the history (--hist_note).
+Text memory (--captions DIR from kfs/caption_ovo.py): a timeline of the captions of clips that ended
+by the query time is put before the recent block (ss layout only); --cap_note adds an abstention hint.
 """
 
 from __future__ import annotations
@@ -50,6 +52,12 @@ from qwen_vl_utils.vision_process import smart_resize  # noqa: E402
 HIST_NOTE = (
     "The earlier keyframes were retrieved automatically and may be unrelated to the question. "
     "Use them only if they clearly contain the needed evidence; otherwise answer from the current view.\n"
+)
+
+CAP_NOTE = (
+    "The timeline was generated automatically and may miss details. Use it for what happened earlier and the "
+    "current view for what is happening now. If the question asks about something that appears in neither, "
+    "it cannot be answered from the video.\n"
 )
 
 VisionBlock = list[tuple[torch.Tensor, torch.Tensor]]  # [(embeds, grid_thw row)] for one <vision_start> block
@@ -213,6 +221,21 @@ def build_segments(layout: str, hist_blocks: VisionBlock, hist_ts: list[float], 
     raise ValueError(layout)
 
 
+_captions: dict[str, list[dict]] = {}
+
+
+def caption_timeline(cap_dir: str, video: str, query_ts: float) -> tuple[str, int]:
+    """Timeline text of the clips that ended by `query_ts` (empty if none) and the number of clips used."""
+    if video not in _captions:
+        path = os.path.join(cap_dir, video.replace("/", "__") + ".json")
+        _captions[video] = json.load(open(path))["captions"] if os.path.exists(path) else []
+    caps = [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6]
+    if not caps:
+        return "", 0
+    lines = "".join(f"[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n" for c in caps)
+    return "Timeline of the video so far (automatic captions of earlier clips):\n" + lines, len(caps)
+
+
 def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> dict[str, Any]:
     video_path = os.path.join(args.chunked_dir, f"{anno['id']}.mp4")
     ele = {"video": video_path, "fps": float(args.fps)}
@@ -243,6 +266,11 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     question = build_qwen25_prompt(anno["task"], anno)
     if chosen and args.hist_note:
         question = HIST_NOTE + question
+    timeline, n_caps = caption_timeline(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else ("", 0)
+    if timeline:
+        segments = [timeline + f"Current view (the latest {len(recent)} seconds):\n"] + segments
+        if args.cap_note:
+            question = CAP_NOTE + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
         "id": anno["id"],
@@ -259,6 +287,8 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         "query_ts": round(full[-1] / plan.raw_fps, 2),
         "num_frames": len(blocks),
         "num_vision_tokens": out["num_vision_tokens"],
+        "n_captions": n_caps,
+        "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0,
         "select_time": select_time,
         "generate_time": out["generate_time"],
     }
@@ -277,12 +307,15 @@ def main() -> None:
     ap.add_argument("--layout", choices=["ss", "blocks", "tagged"], default="ss")
     ap.add_argument("--hist_scale", type=float, default=1.0, help="history frame pixels as a fraction of recent frames")
     ap.add_argument("--hist_note", action="store_true", help="prefix the question with an evidence-skeptical note")
+    ap.add_argument("--captions", default="", help="caption dir from kfs/caption_ovo.py (text memory)")
+    ap.add_argument("--cap_note", action="store_true", help="prefix the question with an abstention hint when a timeline is shown")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
     ap.add_argument("--max_new_tokens", type=int, default=256)
     ap.add_argument("--limit", type=int, default=0, help="first N questions per task group (smoke tests)")
     args = ap.parse_args()
+    assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"
 
     annos = json.load(open(args.anno_path))
     groups = {
@@ -321,6 +354,7 @@ def main() -> None:
     allr = results["backward"] + results["realtime"]
     metrics["vis_tokens_mean"] = float(np.mean([r["num_vision_tokens"] for r in allr]))
     metrics["select_time_mean"] = float(np.mean([r["select_time"] for r in allr]))
+    metrics["timeline_tokens_mean"] = float(np.mean([r.get("timeline_tokens", 0) for r in allr]))
     print(json.dumps({k: round(v, 2) for k, v in metrics.items()}, indent=1), flush=True)
     json.dump({"config": vars(args), "metrics": metrics, "summary": summary}, open(os.path.join(args.result_dir, "summary.json"), "w"), indent=1)
     rxlib.write_result(metrics, selection="final", n_eval=1, protocol="ovo-rtbt")
