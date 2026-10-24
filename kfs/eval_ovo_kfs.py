@@ -18,8 +18,9 @@ Timeline-indexed recall (--recall): the model first reads the numbered timeline 
 clip that holds the evidence (0 = none); the CLIP top-`recall_k` frames inside that clip are then shown between
 the timeline and the current view. Questions answered with 0 get exactly the --captions prompt.
 Bounded memory (--budget N): when the caption lines exceed N tokens, the latest `keep_recent` captions stay
-and older ones are admitted newest-first (--retain recency) or by surprisal under the earlier memory
-(--retain surprise, scores from kfs/surprisal.py), then shown in time order.
+and older ones are admitted newest-first (--retain recency), by surprisal under the earlier memory
+(--retain surprise, scores from kfs/surprisal.py) or by BM25 relevance to the question and its options
+(--retain relevance; ties newest-first), then shown in time order.
 Control (--foreign_timeline): same clips and timestamps, but the caption texts come from another source video.
 Progressive memory access (--cascade ROUTE_JSON, needs --captions):
   L0  SimpleStream (recent frames only), always.
@@ -305,7 +306,30 @@ def format_timeline(caps: list[dict], numbered: bool = False) -> str:
     return TIMELINE_HEADER + "".join(timeline_line(c, i + 1 if numbered else None) for i, c in enumerate(caps))
 
 
-def retain_captions(args, tok, video: str, caps: list[dict]) -> list[dict]:
+_STOP = set("a an the of to in on at for with and or is are was were be been it its this that these those i my me you "
+             "he she they his her their what which who whom where when how why did do does from by as into out up down "
+             "over after before while then there here some any one not no yes can could would should will".split())
+
+
+def _terms(text: str) -> list[str]:
+    return [w.rstrip("s") for w in re.findall(r"[a-z]+", text.lower()) if w not in _STOP and len(w) > 2]
+
+
+def bm25(query: str, docs: list[str], k1: float = 1.2, b: float = 0.75) -> list[float]:
+    """Okapi BM25 of each doc for the query; IDF over `docs` (the captions written so far)."""
+    toks = [_terms(d) for d in docs]
+    avg = sum(map(len, toks)) / max(1, len(toks))
+    q = set(_terms(query))
+    df = {w: sum(w in set(t) for t in toks) for w in q}
+    idf = {w: np.log(1 + (len(toks) - df[w] + 0.5) / (df[w] + 0.5)) for w in q}
+    out = []
+    for t in toks:
+        tf = {w: t.count(w) for w in q}
+        out.append(float(sum(idf[w] * tf[w] * (k1 + 1) / (tf[w] + k1 * (1 - b + b * len(t) / max(avg, 1e-6))) for w in q)))
+    return out
+
+
+def retain_captions(args, tok, video: str, caps: list[dict], query: str = "") -> list[dict]:
     """Keep the caption lines within `budget` tokens: the latest `keep_recent` always stay, older ones are
     admitted newest-first (recency) or most-surprising-first (surprise) while they fit."""
     lens = [len(tok.encode(timeline_line(c), add_special_tokens=False)) for c in caps]
@@ -316,6 +340,9 @@ def retain_captions(args, tok, video: str, caps: list[dict]) -> list[dict]:
     used = sum(lens[i] for i in keep)
     if args.retain == "recency":
         order = list(range(n_old - 1, -1, -1))
+    elif args.retain == "relevance":
+        rel = bm25(query, [c["text"] for c in caps])
+        order = sorted(range(n_old - 1, -1, -1), key=lambda i: -rel[i])  # stable: ties stay newest-first
     else:
         if video not in _surprisal:
             _surprisal[video] = json.load(open(os.path.join(args.surprisal, video.replace("/", "__") + ".json")))["nll"]
@@ -385,7 +412,8 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
     if args.foreign_timeline:
         caps = foreign_captions(args.captions, anno["video"], caps)
     if args.budget:
-        caps = retain_captions(args, qa.processor.tokenizer, anno["video"], caps)
+        query = anno["question"] + " " + " ".join(anno["options"])
+        caps = retain_captions(args, qa.processor.tokenizer, anno["video"], caps, query)
     timeline = format_timeline(caps)
     rclip, recalled, locate_answer, locate_time = 0, [], "", 0.0
     if args.recall and caps:
@@ -511,7 +539,7 @@ def main() -> None:
     ap.add_argument("--recall_k", type=int, default=2, help="frames recalled from the located clip")
     ap.add_argument("--budget", type=int, default=0, help="token budget of the caption lines (0 = unbounded)")
     ap.add_argument("--keep_recent", type=int, default=4, help="latest captions always kept under a budget")
-    ap.add_argument("--retain", choices=["recency", "surprise"], default="recency")
+    ap.add_argument("--retain", choices=["recency", "surprise", "relevance"], default="recency")
     ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
     ap.add_argument("--foreign_timeline", action="store_true", help="control: caption texts from another video")
     ap.add_argument("--cascade", default="", help="route.json from kfs/route.py: progressive memory access")
