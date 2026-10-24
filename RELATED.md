@@ -50,3 +50,22 @@ OmniInteract、OVO-S-Bench、Streaming Interventions、StreamArena、APM-Bench�
 3. **"何时取历史"的门控是现在最热的点**：WRWS、ShallowStream、FlashBack、SAVEMem、StreamScout、SPARE 都在做。我们的创新点 2（置信度仲裁）和它们重叠很大。
 4. **HLD 是公认的难点**：BT 涨得多的方法主要涨在 HLD，靠训练弃答（SPARE 90、OneStreamer 99.5、StreamScout-R 98），或靠结构化记忆判断"出现过没有"（FOLIO 66.7 / 84.6）。StreamOPD 的主指标直接排除 HLD，并说明 SimpleStream 也把 HLD 单独报告。
 5. **低分辨率历史帧**（我们的创新点 1）在这批工作里没人做，但单独效果小（4 帧时从 −2.9 改善到 −1.7）。
+
+## 补充（2026-10-24）：和"增量字幕"最接近的工作
+
+**DeltaStreamer（arXiv 2610.19849，Qwen3.6-27B，8×A100，智能体）**，读了论文 HTML 的方法和消融部分：
+- 写入：每个采样帧（基础 1 fps，静止时可降到 0.25 fps），VLM 看上一帧、当前帧和此前的记忆文本，写出 O_t = (D_t 结构化场景描述, Δ_t 相对上一帧的变化描述)。
+- 有界：记录先进工作记忆，用 BOCPD 切 episode，生成摘要和长期 pin；渲染时把较早的原文按文本预算裁掉，保留摘要和近期观察，被裁的可以召回。
+- 工具：记忆图、核验与回放调度、历史帧回放、裁剪、SAM2.1 跟踪、Whisper。
+- 消融（OVO 总分，含 Forward）：1F-NoDelta 58.87 → **1F-TextDelta 63.19** → 2F-NoDelta 61.12 → 2F-VisualDelta（完整）66.07。
+- OVO：RT 72.23 / BT 67.72 / (RT+BT)/2 69.98。它表里的 SimpleBaseline 是 RT 79.90 / BT 67.40：重型记忆在 RT 上低了 7.7 分。
+- **和我们的重叠**：
+  - 它的 1F-TextDelta（看记忆文本，只写变化）基本就是我们的 delta16。
+  - 它的"按文本预算裁剪 + episode 摘要"覆盖了我们设想的"长度有上限的分层记忆"。
+- 差别只在规模和形态：我们是 7B、每 16 秒一段、无工具、插在 SimpleStream 上。这属于工程差异，不足以作为创新点。
+
+**OneStreamer（2610.01762，4B，需要训练）**：Observe 记录（物体、动作、场景、状态变化）+ Summary 记录；PSTL 训练时挑选状态变化 token。ASI 63.5 → 71.6。
+
+**更早的、非流式的类似思路**：
+- LLoVi（2312.17235）：用 LLM 汇总字幕以去掉冗余。
+- Video ReCap（2402.13250）：递归分层字幕，需要训练。
