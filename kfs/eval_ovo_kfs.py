@@ -20,6 +20,7 @@ the timeline and the current view. Questions answered with 0 get exactly the --c
 Bounded memory (--budget N): when the caption lines exceed N tokens, the latest `keep_recent` captions stay
 and older ones are admitted newest-first (--retain recency) or by surprisal under the earlier memory
 (--retain surprise, scores from kfs/surprisal.py), then shown in time order.
+Control (--foreign_timeline): same clips and timestamps, but the caption texts come from another source video.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ import os
 import re
 import sys
 import time
+import zlib
 from typing import Any
 
 os.environ.setdefault("FORCE_QWENVL_VIDEO_READER", "decord")
@@ -236,6 +238,7 @@ def build_segments(layout: str, hist_blocks: VisionBlock, hist_ts: list[float], 
 
 _captions: dict[str, list[dict]] = {}
 _surprisal: dict[str, dict[str, float]] = {}
+_foreign_loaded: set[str] = set()
 TIMELINE_HEADER = "Timeline of the video so far (automatic captions of earlier clips):\n"
 
 
@@ -250,6 +253,22 @@ def timeline_captions(cap_dir: str, video: str, query_ts: float) -> list[dict]:
         path = os.path.join(cap_dir, video.replace("/", "__") + ".json")
         _captions[video] = json.load(open(path))["captions"] if os.path.exists(path) else []
     return [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6 and not is_no_change(c["text"])]
+
+
+def foreign_captions(cap_dir: str, video: str, caps: list[dict]) -> list[dict]:
+    """Control: keep the clips and timestamps of `caps` but take the texts from another source video that has at
+    least as many informative captions (chosen deterministically from the video name)."""
+    if not caps:
+        return caps
+    if cap_dir not in _foreign_loaded:
+        for f in sorted(os.listdir(cap_dir)):
+            rec = json.load(open(os.path.join(cap_dir, f)))
+            _captions.setdefault(rec["video"], rec["captions"])
+        _foreign_loaded.add(cap_dir)
+    informative = {v: [c for c in cs if not is_no_change(c["text"])] for v, cs in _captions.items() if v != video}
+    donors = sorted(v for v, cs in informative.items() if len(cs) >= len(caps))
+    donor = donors[zlib.crc32(video.encode()) % len(donors)]
+    return [{**c, "text": d["text"]} for c, d in zip(caps, informative[donor])]
 
 
 def timeline_line(c: dict, num: int | None = None) -> str:
@@ -339,6 +358,8 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         question = HIST_NOTE + question
     caps = timeline_captions(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else []
     n_caps_all = len(caps)
+    if args.foreign_timeline:
+        caps = foreign_captions(args.captions, anno["video"], caps)
     if args.budget:
         caps = retain_captions(args, qa.processor.tokenizer, anno["video"], caps)
     timeline = format_timeline(caps)
@@ -408,6 +429,7 @@ def main() -> None:
     ap.add_argument("--keep_recent", type=int, default=4, help="latest captions always kept under a budget")
     ap.add_argument("--retain", choices=["recency", "surprise"], default="recency")
     ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
+    ap.add_argument("--foreign_timeline", action="store_true", help="control: caption texts from another video")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
@@ -417,6 +439,7 @@ def main() -> None:
     assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"
     assert not args.recall or (args.captions and args.k == 0), "--recall needs --captions and no history keyframes"
     assert not args.budget or args.captions, "--budget needs --captions"
+    assert not args.foreign_timeline or args.captions, "--foreign_timeline needs --captions"
     args.surprisal = args.surprisal or args.captions.rstrip("/") + "_surprisal"
 
     annos = json.load(open(args.anno_path))
