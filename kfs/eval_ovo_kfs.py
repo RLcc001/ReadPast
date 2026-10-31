@@ -104,12 +104,22 @@ VisionBlock = list[tuple[torch.Tensor, torch.Tensor]]  # [(embeds, grid_thw row)
 
 
 class KFSModel(RecentWindowQAModel):
+    """Qwen2.5-VL or Qwen3-VL (the base class picks the model class from the name).
+
+    per_frame_blocks: every frame gets its own <vision_start> block, as SimpleStream's Qwen3 OVO script does; the
+    Qwen2.5 scripts and SimpleStream's StreamingBench script (all backbones) put a window in one block.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.per_frame_blocks = "qwen3" in self.model_name.lower()
+
     @torch.inference_mode()
     def generate_segments(self, segments: list[str | VisionBlock], question: str, n_options: int) -> dict[str, Any]:
         """Build `<im_start>user\\n{segments}\\n{question}<im_end>\\n<im_start>assistant\\n` and generate.
 
-        With a single vision block this is token-for-token SimpleStream's Qwen2.5 prompt. Also returns
-        the first-step distribution over the option letters (raw logits) as a confidence signal.
+        With a single vision block this is token-for-token SimpleStream's Qwen2.5 prompt (per-frame blocks: its Qwen3
+        OVO prompt). Also returns the first-step distribution over the option letters (raw logits) as a confidence signal.
         """
         tok = self.processor.tokenizer
         text_device = self._get_text_input_device()
@@ -120,11 +130,12 @@ class KFSModel(RecentWindowQAModel):
             if isinstance(seg, str):
                 ids += tok.encode(seg, add_special_tokens=False)
                 continue
-            n_tok = sum(int(e.shape[0]) for e, _ in seg)
-            ids += [self._vision_start_id] + [self.image_token_id] * n_tok + [self._vision_end_id]
-            embeds += [e for e, _ in seg]
-            # get_rope_index consumes one grid row per vision block (SimpleStream relies on the same behaviour)
-            block_grids.append(seg[0][1])
+            for blk in ([[f] for f in seg] if self.per_frame_blocks else [seg]):
+                n_tok = sum(int(e.shape[0]) for e, _ in blk)
+                ids += [self._vision_start_id] + [self.image_token_id] * n_tok + [self._vision_end_id]
+                embeds += [e for e, _ in blk]
+                # get_rope_index consumes one grid row per vision block (SimpleStream relies on the same behaviour)
+                block_grids.append(blk[0][1])
         ids += tok.encode("\n", add_special_tokens=False) + tok.encode(question, add_special_tokens=False)
         ids += [self._im_end_id] + tok.encode("\n", add_special_tokens=False)
         ids += [self._im_start_id] + tok.encode("assistant\n", add_special_tokens=False)

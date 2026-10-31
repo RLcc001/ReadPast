@@ -82,6 +82,7 @@ def main() -> None:
     routes = json.load(open(args.route))
     print(json.dumps(vars(args)), f"{len(entries)} videos", flush=True)
     qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
+    qa.per_frame_blocks = False  # SimpleStream's StreamingBench script puts the window in one block for every backbone
     scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir)
 
     os.makedirs(args.result_dir, exist_ok=True)
