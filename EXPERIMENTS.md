@@ -612,3 +612,33 @@ L0 与 SimpleStream 自己的 r4 run 2486/2500 相同。不同的 14 题双方�
 | 校准路由 | ev β=2 | 65.5 | 53.6 | 77.4 | 41.4 | 68.56 [−1.53, +1.65] |
 
 β=1（标准 PMI）时 cc 崩到 36 分。**不成立**：扣掉外来时间线后 HLD 回到 r4 水平（符合预期），但不含 HLD 的分数没有任何提升，RT 也没有回升。外来时间线下的选项概率和本题内容无关，作为参照噪声太大。至此读取侧又排除一个候选。
+
+## 2026-10-31 第七轮：第二骨干 Qwen3-VL-8B，事先写定的验证（tag: `q3`）
+
+**用户决定（10-31）**：下载 Qwen3-VL-8B-Instruct 做第二骨干（HF 缓存，17 GB）。目的有三个：完整性；用没看过的骨干定论文主线（校准路由 vs L0 置信度触发）；检验"7B 字幕器写不出细节"是不是瓶颈。
+
+**环境**：新 venv `envs/simplestream-qwen3`（torch 2.9.1，transformers 4.57.6、accelerate 1.12.0、qwen-vl-utils 0.0.14，与 SimpleStream 的 requirements-qwen3.txt 一致；另装 decord 0.6.0、einops，flash-attn 复用 hermes 的 wheel）。`kfs/run.sh` 用 `KFS_VENV=simplestream-qwen3` 选 venv。
+
+**实现（代码 29df297）**：SimpleStream 的基类按模型名加载 Qwen3，所以 KFSModel 不改结构，只加 `per_frame_blocks`：
+- OVO 上 Qwen3 每帧单独一个视觉块，对齐 SimpleStream 的 `eval_qwen3vl_ovo.py`；
+- SB 上所有帧放在一个块里，对齐它的 `eval_streamingbench.py`，该脚本对所有骨干都这样处理；
+- 帧解码和缩放与 SimpleStream 共用（patch 14 的 exact-recent 解码），提示词文本两种骨干相同。
+
+⚠ SimpleStream 的 Qwen3 路径只把视觉 embedding 放进 `inputs_embeds`，没有 `pixel_values`，所以 **Qwen3-VL 的 DeepStack 多层视觉注入没有生效**（transformers 只在给 pixel_values 时才算 deepstack）。我们和它保持一致，基线和方法在同一实现下比较。论文里需要注明，之后可以补一个带 DeepStack 的近 4 帧对照。
+
+**步骤与事先标准**（全部不调参；阈值沿用第六轮的定义）：
+
+| 步 | 内容 | 标准 |
+|---|---|---|
+| 0 | SimpleStream 官方脚本 Qwen3 近 4 帧（OVO、SB-RT）；我们 k=0 的 L0 逐题核对 | OVO avg 与论文 67.70 相差 ≤ 1.0；L0 与官方答案一致 ≥ 99% |
+| 1 | OVO：Qwen3 自己写 cap16 字幕，评测全部 L1；离线组合 (a) 校准路由（p_cf 用 Qwen3 自己算）、(b) L0 置信度 τ0 = 0.5 | 各自 avg ≥ r4 +1.0 且 RT ≥ r4 −0.3；同时报告不含 HLD 的分数 |
+| 2 | SB-RT：Qwen3 字幕，一遍记录 L0、L1，离线组合 (a)、(b) | 各自 ≥ SimpleStream r4（同骨干） |
+| 3 | 换字幕器：Qwen2.5 读 Qwen3 写的 cap16（OVO 全部 L1） | 不含 HLD 的 BT（EPM、ASI 均值）≥ Qwen2.5 自写字幕 +2 → 判定写入端是瓶颈 |
+
+**主线判定（事先定）**：
+- (a)、(b) 中在 Qwen3 的两个基准上**都**过线的，作为主方法；
+- 两个都过，选两个基准增益均值更大的那个，另一个作为变体报告；
+- 都不过，转向分析型论文 (c)。
+- Qwen2.5 上的结果照常报告，(b) 在 Qwen2.5 上要注明是事后挑选的。
+
+**运行**：`rx table -p streamkv -t q3`；冒烟 `-t q3-smoke`。
