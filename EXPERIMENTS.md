@@ -642,3 +642,33 @@ L0 与 SimpleStream 自己的 r4 run 2486/2500 相同。不同的 14 题双方�
 - Qwen2.5 上的结果照常报告，(b) 在 Qwen2.5 上要注明是事后挑选的。
 
 **运行**：`rx table -p streamkv -t q3`；冒烟 `-t q3-smoke`。
+
+### 10-31/11-01 Qwen3 速度问题：Conv3d 修复（代码 93a01b9）
+
+冒烟测试正确，但速度极慢：OVO 每题 40–70 s（Qwen2.5 约 1.4 s），字幕 40.5 s/段（Qwen2.5 同一视频 5.65 s/段）。SimpleStream 官方脚本同样慢，所以问题不在我们的代码。
+
+逐段计时（`cache/tmp/bench_q3*.py`）：
+- 解码 0.5 s；processor 0.06 s；生成 0.24 s（只出 "A" + EOS，KV cache 正常）；
+- **视觉塔 50–54 s**，几乎全在 patch embed 的 bf16 `Conv3d` 上：torch 2.9.1 / cuDNN 9.10 下 9408 个 patch 要约 70 s，关掉 cudnn 也一样；
+- kernel = stride、无 padding 时，Conv3d 等价于把 patch 展平后做 matmul。`F.linear` 只要 0.2 ms，与 conv 的最大差 0.016（|y| 最大 3.06，即一个 bf16 ulp）。Qwen2.5 的 venv 是 torch 2.7.1 / cuDNN 9.7，不受影响。
+
+**修复**：
+- `kfs/sitefix/kfs_conv3d_fix.py` 把满足上述条件的 Conv3d 改用 `F.linear`；
+- 由 Qwen3 venv 里的 `zz_kfs_conv3d_fix.pth` 在解释器启动时加载，官方脚本也一并生效，不改 third_party；`setup_envs.sh` 会重建这个文件；
+- SimpleStream 没有锁 torch 版本，这只是消除环境差异。
+
+验证（OVO 冒烟 6 题）：
+- 每题耗时从 68 s 降到 1.45 s；
+- 6 题答案全部相同；
+- p_opts 在拿不准的题上有 bf16 量级的差别，例如 STU 一题 D 的概率从 0.568 变为 0.493。
+
+修复前的 `ss_q3_ovo_r4`、`ss_q3_sb_r4`（261031-233339-*，各跑了约 2 小时）已取消，按原命令重跑。冒烟字幕和两个路由器任务不受影响：路由器只用文本，冒烟字幕只用于检查。
+
+11-01 01:45 提交（全部带修复）：
+
+| 任务 | 用途 |
+|---|---|
+| `ss_q3_ovo_r4`、`ss_q3_sb_r4` | 官方近 4 帧 |
+| `r4_q3` | Step 0：我们的 L0 |
+| `cap16_q3_s0–7` | OVO 字幕，写到 `cache/captions_q3_s16` |
+| `cap16_q3_sb_s0–11` | SB 字幕，写到 `cache/captions_q3_s16_sb` |
