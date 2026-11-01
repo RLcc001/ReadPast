@@ -100,3 +100,27 @@ OmniInteract、OVO-S-Bench、Streaming Interventions、StreamArena、APM-Bench�
 **必须补的对比**：
 - 在我们已记录的 L0/L1 上，离线比较 ShallowStream 式 logit 差门（合成问题集 + Wilson 准则）、FlashBack 式结构化路由、固定阈值，以及我们的空问题校准；
 - 2 个骨干 × 2 个基准。每种路由只需对问题文本跑一次前向，几分钟一个。
+
+## 补充（2026-11-01）：同方向免训练论文的写法结构
+
+读了 5 篇的 arXiv HTML，看章节结构和故事怎么讲（部分附录内容来自摘要，未逐字核对）。
+
+| 论文 | 写法 | 方法前的实验 | 主卖点 | 相对最强基线 |
+|---|---|---|---|---|
+| SimpleStream 2604.02317 | 分析 / 基线型 | 主结果本身就是动机 | "复杂记忆没必要" + 评测建议 | 方法就是基线 |
+| ShallowStream 2609.02780 | 观察 → 方法 | §3 Observations：一个逐层检索实验 | 效率（预填充最多 52×）+ 精度约 +1.7–1.9 | 对重跑的 SimpleStream +1.9（LLaVA） |
+| WRWS 2609.37345 | 观察 → 方法 | §2 Empirical Observations：两个实验 | 效率（视觉处理时间为 SimpleStream 的 48%），精度写 "competitive" | OVO +0.25（Qwen2.5）/ +1.04（Qwen3），有平局 |
+| FlashBack 2610.01192 | 系统型 | 无，只有示意图 | "免训练也有竞争力" | 只和自身骨干比：OVO +1.4 / +2.75 |
+| FOLIO 2607.13298 | 系统型 | 无，引言用文字论证 | SOTA，大幅领先 | +4–12，但没和 SimpleStream 直接比 |
+
+共同点：
+- 规模都是 2 个骨干 × 2 个基准（OVO + SB-RT），WRWS 额外扫了多个尺度。
+- 都没有显著性检验或多次运行。
+- 独立 Limitations 节：SimpleStream、FlashBack 有；ShallowStream、FOLIO 没有（FOLIO 写在结论里，WRWS 放附录）。
+- 附录都很重：提示词全文、逐任务完整表、失败案例、效率测量协议。
+
+各写法要点：
+- SimpleStream：方法只有一行公式，4 条贡献里只有 1 条是方法；正文主体是 §5 Analysis（窗口长度、模型尺度、Visual-RAG、感知-记忆权衡、基准缺陷）和 §6 "Why does a simple baseline win?"；结论提出 "recent-first, history-on-demand" 但没有实现。
+- ShallowStream：一个实验（浅层就能检索，代价随深度上升）直接推出整个方法；门的阈值标定放附录 C。
+- WRWS：预实验给出逐题 oracle +6–8 分，方法实得 +0.25–1，靠把效率当主卖点、精度写 "comparable" 来撑；方法后有 "Understanding Adaptive Evidence Allocation" 分析节，承认 79.9% 的题和只看近帧完全相同。
+- FlashBack：没有预实验，消融在两个诊断子集上做；HLD 两个骨干都下降，在 Limitations 里承认。
