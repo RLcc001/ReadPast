@@ -13,7 +13,10 @@ Per question (text only, no options, no frames) this records:
                    Current -> stage 2: Persistent / Outcome -> Recall, Boundary / Ongoing -> Native.
   p_past           our router (kfs/route.py prompt 0), so the synthetic set has every router's score.
 
-Benches: ovo (keys "<task>:<id>"), sb (question_id), synth (kfs/data/route_synth_v1.json, keys "synth:<i>").
+Benches: ovo (keys "<task>:<id>"), sb (question_id), synth (kfs/data/route_synth_v1.json, keys "synth:<i>"),
+  cf (the content-free questions of kfs/route.py: "N/A", "", "[MASK]", keys "cf:<q>"; stage 2 always scored) for
+  label-free contextual calibration of every router (kfs/analyze_routers.py).
+--fb_s2_always scores FlashBack stage 2 for every question (needed once stage 1 is calibrated offline).
 Output: {out_dir}/scores_<bench>.json
 
 usage: python kfs/route_baselines.py --model_path M --out_dir $RX_RUN_DIR/out [--bench ovo sb synth]
@@ -32,6 +35,8 @@ from eval_ovo_kfs import BACKWARD_TASKS, REAL_TIME_TASKS, KFSModel  # noqa: E402
 from route import ROUTE_PROMPT, p_past  # noqa: E402
 
 import torch  # noqa: E402
+
+CONTENT_FREE = ("N/A", "", "[MASK]")  # same inputs as kfs/route.py's calibration
 
 # ---- ShallowStream (verbatim from src/shallowstream/task_gate.py) ----
 SS_FEWSHOT10 = (
@@ -166,6 +171,7 @@ def main() -> None:
     ap.add_argument("--synth", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/route_synth_v1.json"))
     ap.add_argument("--bench", nargs="+", default=["synth", "ovo", "sb"])
     ap.add_argument("--out_dir", required=True)
+    ap.add_argument("--fb_s2_always", action="store_true", help="score FlashBack stage 2 for every question")
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
@@ -178,6 +184,8 @@ def main() -> None:
     for bench in args.bench:
         if bench == "synth":
             qs = [(f"synth:{i}", it["q"]) for i, it in enumerate(json.load(open(args.synth))["items"])]
+        elif bench == "cf":
+            qs = [(f"cf:{q}", q) for q in CONTENT_FREE]
         elif bench == "sb":
             qs = [(q["question_id"], q["question"]) for e in json.load(open(args.sb_anno)) for q in e["questions"]]
         else:
@@ -193,10 +201,11 @@ def main() -> None:
             s1 = fb_stage(qa, tok, FB1_HEAD, FB1_STATES, FB1_CODES, "Question type:", question)
             top1 = max(s1, key=s1.get)
             rec["fb_s1"] = {k: round(v, 4) for k, v in s1.items()}
-            if top1 == "CURRENT_PERCEPTION":
+            if top1 == "CURRENT_PERCEPTION" or args.fb_s2_always or bench == "cf":
                 s2 = fb_stage(qa, tok, FB2_HEAD, FB2_STATES, FB2_CODES, "CURRENT proof form:", question)
-                top2 = max(s2, key=s2.get)
                 rec["fb_s2"] = {k: round(v, 4) for k, v in s2.items()}
+            if top1 == "CURRENT_PERCEPTION":
+                top2 = max(s2, key=s2.get)
                 rec["fb_state"], rec["fb_recall"] = top2, FB2_RECALL[top2]
             else:
                 rec["fb_state"], rec["fb_recall"] = top1, FB1_RECALL[top1]
