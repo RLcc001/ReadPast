@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+DECODE_THREADS = int(os.environ.get("KFS_DECODE_THREADS", "0"))  # 0 = decord default (all cores)
 import re
 import sys
 import time
@@ -208,7 +209,7 @@ class ClipScorer:
                 return z["feat"].astype(np.float32)
         import decord
 
-        h, w = decord.VideoReader(video_path).get_batch([0]).shape[1:3]
+        h, w = decord.VideoReader(video_path, num_threads=DECODE_THREADS).get_batch([0]).shape[1:3]
         s = self.short / min(h, w)
         reader = decord.VideoReader(video_path, width=int(round(w * s)), height=int(round(h * s)))
         feats = []
@@ -307,7 +308,7 @@ def flush_caption(args, qa: KFSModel, video_path: str, raw_fps: float, caps: lis
     if span < args.flush_min:
         return None
     n = max(2, min(8, int(span)))
-    vr = decord.VideoReader(video_path)
+    vr = decord.VideoReader(video_path, num_threads=DECODE_THREADS)
     idx = [min(int((t0 + (i + 0.5) * span / n) * raw_fps), len(vr) - 1) for i in range(n)]
     frames = torch.from_numpy(vr.get_batch(idx).asnumpy()).permute(0, 3, 1, 2).float()
     h, w = frames.shape[-2:]

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+DECODE_THREADS = int(os.environ.get("KFS_DECODE_THREADS", "0"))  # 0 = decord default (all cores)
 import sys
 import time
 
@@ -142,7 +143,7 @@ def main() -> None:
                     rec["level"] = 1
                 if to_l1 and max(out1["p_opts"]) < args.tau1 and hist:
                     if video_path not in frame_idx:  # 1-fps history frames (mid-second) for CLIP, cached per video
-                        vr = decord.VideoReader(video_path)
+                        vr = decord.VideoReader(video_path, num_threads=DECODE_THREADS)
                         fps, n = vr.get_avg_fps(), len(vr)
                         frame_idx[video_path] = [min(int((s + 0.5) * fps), n - 1) for s in hist_sec]
                     feats = scorer.image_feats(e["video_path"].replace("/", "__"), video_path, frame_idx[video_path])

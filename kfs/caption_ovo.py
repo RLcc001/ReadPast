@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+DECODE_THREADS = int(os.environ.get("KFS_DECODE_THREADS", "0"))  # 0 = decord default (all cores)
 import sys
 import time
 from collections import defaultdict
@@ -114,7 +115,7 @@ def main() -> None:
         if os.path.exists(out):
             continue
         chunk = longest[video]["path"]
-        vr = decord.VideoReader(chunk)
+        vr = decord.VideoReader(chunk, num_threads=DECODE_THREADS)
         fps = float(vr.get_avg_fps())
         duration = len(vr) / fps
         if args.bench == "sb":
