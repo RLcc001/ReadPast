@@ -141,3 +141,13 @@ FOLIO 只给了 RT、BT 和 HLD，用 BT = (EPM + ASI + HLD) / 3 反推 EPM、AS
 - FOLIO 在 Qwen2.5 上相对 SimpleStream 的领先全部来自 HLD；不含 HLD 时它比 SimpleStream 低 2.9，比我们低 3.7。
 - Qwen3 上 FOLIO 的领先从 5.2 缩到 0.5。
 - 待办：从 FOLIO 表 1 逐项核对 EPM、ASI；对其他给出逐任务分数的方法（ShallowStream、SelectStream、StreamScout、WRWS、SimpleStream 论文值）同样重算；确认各论文的 OVO 题目数（SimpleStream 论文 1640 题，我们 1468 题）。
+
+## 补充（2026-11-01）：有没有人"不含 HLD"报告 / 做过内容对照
+
+- **SimpleStream §5.3**：论证 HLD "不是记忆任务"，把记忆、幻觉鲁棒性混在 Backward Tracing 里不合理；分析里的记忆指标 ER = (EPM + ASI) / 2 不含 HLD。只是论证，没有对照实验。
+- **StreamOPD（2608.16320，需要训练）**：主指标直接用 "OVO-Bench (excl. HLD)"，同时报告含 HLD 的总分和 HLD 原始分；理由是 HLD "scores abstention on unanswerable queries rather than streaming event recall"，并注明 "following SimpleStream"。它的 HLD 是下降（训练削弱了弃答），方向和我们相反。没有记忆内容对照。
+- **FOLIO**：正文承认 HLD 的提升 "also benefit from conservative answer calibration"，但主表照常用含 HLD 的总分。
+- **没有找到**（两次检索 + 读了 6 篇论文；StreamOPD 补充材料未读到）：
+  - 用外来 / 打乱的记忆做对照，证明 HLD 的提升与记忆内容无关；
+  - 按不含 HLD 的口径重算已发表方法，说明其领先集中在 HLD。
+- 其他领域的类似对照：RAG 里加入随机无关文档反而提升精度（Cuconasu et al., The Power of Noise, SIGIR 2024）；VQA 的语言先验 / 盲基线（Goyal et al. 2017 VQA v2；Agrawal et al. 2018 VQA-CP）。
