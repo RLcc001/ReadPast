@@ -124,3 +124,20 @@ OmniInteract、OVO-S-Bench、Streaming Interventions、StreamArena、APM-Bench�
 - ShallowStream：一个实验（浅层就能检索，代价随深度上升）直接推出整个方法；门的阈值标定放附录 C。
 - WRWS：预实验给出逐题 oracle +6–8 分，方法实得 +0.25–1，靠把效率当主卖点、精度写 "comparable" 来撑；方法后有 "Understanding Adaptive Evidence Allocation" 分析节，承认 79.9% 的题和只看近帧完全相同。
 - FlashBack：没有预实验，消融在两个诊断子集上做；HLD 两个骨干都下降，在 Limitations 里承认。
+
+## 补充（2026-11-01）：按"不含 HLD"口径重算 FOLIO
+
+FOLIO 只给了 RT、BT 和 HLD，用 BT = (EPM + ASI + HLD) / 3 反推 EPM、ASI 的均值（论文值，未逐项核对；题目集合可能与我们的 1468 题不同）：
+
+| 骨干 | 方法 | RT | EPM、ASI 均值 | HLD | 标准总分 | 不含 HLD |
+|---|---|---|---|---|---|---|
+| Qwen2.5-7B | SimpleStream r4（复现） | 77.7 | 57.5 | 40.3 | 64.75 | 67.62 |
+| Qwen2.5-7B | FOLIO | 77.0 | 52.5 | 66.7 | 67.10 | 64.73 |
+| Qwen2.5-7B | 我们（校准路由） | 77.8 | 59.1 | 50.5 | 67.02 | 68.44 |
+| Qwen3-8B | SimpleStream r4（复现） | 81.4 | 55.2 | 51.6 | 67.66 | 68.25 |
+| Qwen3-8B | FOLIO | 82.0 | 61.4 | 84.6 | 75.55 | 71.67 |
+| Qwen3-8B | 我们（校准路由） | 81.7 | 60.8 | 55.9 | 70.39 | 71.19 |
+
+- FOLIO 在 Qwen2.5 上相对 SimpleStream 的领先全部来自 HLD；不含 HLD 时它比 SimpleStream 低 2.9，比我们低 3.7。
+- Qwen3 上 FOLIO 的领先从 5.2 缩到 0.5。
+- 待办：从 FOLIO 表 1 逐项核对 EPM、ASI；对其他给出逐任务分数的方法（ShallowStream、SelectStream、StreamScout、WRWS、SimpleStream 论文值）同样重算；确认各论文的 OVO 题目数（SimpleStream 论文 1640 题，我们 1468 题）。
