@@ -8,6 +8,10 @@ Routers (decisions from kfs/route.py and kfs/route_baselines.py; all see the que
                       tau = Wilson (lowest tau whose one-sided 95% Wilson lower bound on retrieval precision >= 0.9 on
                       the synthetic set kfs/data/route_synth_v1.json, the paper's criterion), tau = 11.0 (paper, Qwen3)
   FlashBack           structured temporal-evidence router, fixed state -> Native / Recall mapping
+  ... tau=cf / FlashBack calibrated (round 8, experiment A): our label-free content-free calibration applied to the
+                      prior gates, from the routers_cf_* runs (scores of "N/A", "", "[MASK]"). ShallowStream: read iff
+                      sigmoid(gap) >= mean sigmoid(gap_cf). FlashBack: per stage q = softmax(state scores), calibrated
+                      state = argmax(log q - log mean q_cf) (Zhao et al. 2021), then the fixed mapping.
 Reference rows: never (r4), always L1, label route (OVO: BT -> L1).
 
 Cells: {Qwen2.5, Qwen3} x {OVO (avg of BT/RT task means), SB-RT (accuracy)}. A question without a timeline is
@@ -29,9 +33,9 @@ from analyze_sb import boot as boot_sb  # noqa: E402
 
 BACKBONES = {
     "Qwen2.5-VL-7B": dict(ovo=("r4_ss", "cap16"), sb="261025-04464*-sb_casc_s[0-3]", route_ovo="route_cal_p0",
-                          route_sb="route_cal_sb_p0", routers="routers_q25", paper_tau=None),
+                          route_sb="route_cal_sb_p0", routers="routers_q25", routers_cf="routers_cf_q25", paper_tau=None),
     "Qwen3-VL-8B": dict(ovo=("r4_q3", "cap16_q3"), sb="261101-0240*-sb_casc_q3_s[0-3]", route_ovo="route_q3_cal_p0",
-                        route_sb="route_q3_cal_sb_p0", routers="routers_q3", paper_tau=11.0),
+                        route_sb="route_q3_cal_sb_p0", routers="routers_q3", routers_cf="routers_cf_q3", paper_tau=11.0),
 }
 SYNTH = "kfs/data/route_synth_v1.json"
 
@@ -59,6 +63,57 @@ def wilson_tau(scores_synth, field):
     return math.inf
 
 
+FB1_RECALL = {"HISTORICAL_STATE": True, "TEMPORAL_INTERACTION": True, "GLOBAL_AGGREGATION": True,
+              "PREDICTIVE_CONSEQUENCE": False}
+FB2_RECALL = {"SIMULTANEOUS_BOUNDARY_CONFIGURATION": False, "ONGOING_PROCESS": False,
+              "PERSISTENT_CURRENT_STATE": True, "REALIZED_BOUNDED_OUTCOME": True}
+
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x)) if x >= 0 else math.exp(x) / (1 + math.exp(x))
+
+
+def softmax(d):
+    m = max(d.values())
+    e = {k: math.exp(v - m) for k, v in d.items()}
+    z = sum(e.values())
+    return {k: v / z for k, v in e.items()}
+
+
+def mean_dist(ds):
+    return {k: sum(d[k] for d in ds) / len(ds) for k in ds[0]}
+
+
+def cf_routers(cfg, bench, sc_old):
+    """Round 8 experiment A: content-free calibration of the prior gates (empty if the runs are missing)."""
+    try:
+        cdir = newest(f"*-{cfg['routers_cf']}/out")
+        cf, sc = json.load(open(f"{cdir}/scores_cf.json")), json.load(open(f"{cdir}/scores_{bench}.json"))
+    except (FileNotFoundError, KeyError):
+        return {}, {}
+    out, info = {}, {}
+    for f, lab in (("ss_zs", "zero-shot"), ("ss_fs10", "10-shot")):
+        p_cf = sum(sigmoid(v[f]) for v in cf.values()) / len(cf)
+        out[f"ShallowStream {lab} tau=cf"] = {k: sigmoid(v[f]) >= p_cf for k, v in sc.items()}
+        info[f"{f} tau=cf (gap)"] = round(math.log(p_cf / (1 - p_cf)), 3) if 0 < p_cf < 1 else p_cf
+    q1 = mean_dist([softmax(v["fb_s1"]) for v in cf.values()])
+    q2 = mean_dist([softmax(v["fb_s2"]) for v in cf.values()])
+
+    def cal(rec):
+        s1 = softmax(rec["fb_s1"])
+        top1 = max(s1, key=lambda k: math.log(s1[k]) - math.log(q1[k]))
+        if top1 != "CURRENT_PERCEPTION":
+            return FB1_RECALL[top1]
+        s2 = softmax(rec["fb_s2"])
+        return FB2_RECALL[max(s2, key=lambda k: math.log(s2[k]) - math.log(q2[k]))]
+
+    out["FlashBack calibrated"] = {k: cal(v) for k, v in sc.items()}
+    out["FlashBack (rescored, uncal.)"] = {k: v["fb_recall"] for k, v in sc.items()}
+    info["ss score mismatches vs routers run"] = sum(
+        abs(sc[k][f] - sc_old[k][f]) > 1e-2 for k in sc if k in sc_old for f in ("ss_zs", "ss_fs10"))
+    return out, info
+
+
 def routers(cfg, bench):
     """name -> (key -> read memory?), keys as in route.json / scores_*.json."""
     rdir = newest(f"*-{cfg['route_' + bench]}/out")
@@ -77,7 +132,9 @@ def routers(cfg, bench):
             taus[f"{f} tau={tn}"] = t
     out["FlashBack structured"] = {k: v["fb_recall"] for k, v in sc.items()}
     mismatch = sum(abs(sc[k]["p_past"] - route[k]["p_past"]) > 1e-3 for k in route if k in sc)
-    return out, {"p_cf": p_cf, **taus, "p_past mismatches vs route run": mismatch}, sc, route
+    cfo, cfi = cf_routers(cfg, bench, sc)
+    out.update(cfo)
+    return out, {"p_cf": p_cf, **taus, "p_past mismatches vs route run": mismatch, **cfi}, sc, route
 
 
 def auc(pos, neg):
