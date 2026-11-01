@@ -80,6 +80,11 @@ CAP_NOTE = (
     "current view for what is happening now. If the question asks about something that appears in neither, "
     "it cannot be answered from the video.\n"
 )
+# --view_note: the same abstention hint for a prompt without a timeline (L0 / SimpleStream + note control)
+VIEW_NOTE = (
+    "Use the current view for what is happening now. If the question asks about something that does not appear "
+    "in the video, it cannot be answered from the video.\n"
+)
 
 NOTE_PROMPTS = {
     "desc": (
@@ -482,6 +487,8 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         segments = with_timeline(timeline, f"Current view (the latest {len(recent)} seconds):\n", segments, args.tl_pos)
     if timeline and args.cap_note:
         question = CAP_NOTE + question
+    elif not timeline and args.view_note:
+        question = VIEW_NOTE + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
         "id": anno["id"],
@@ -586,6 +593,7 @@ def main() -> None:
     ap.add_argument("--hist_note", action="store_true", help="prefix the question with an evidence-skeptical note")
     ap.add_argument("--captions", default="", help="caption dir from kfs/caption_ovo.py (text memory)")
     ap.add_argument("--cap_note", action="store_true", help="prefix the question with an abstention hint when a timeline is shown")
+    ap.add_argument("--view_note", action="store_true", help="prefix the question with an abstention hint when no timeline is shown")
     ap.add_argument("--recall", action="store_true", help="timeline-indexed recall of frames (needs --captions)")
     ap.add_argument("--recall_k", type=int, default=2, help="frames recalled from the located clip")
     ap.add_argument("--budget", type=int, default=0, help="token budget of the caption lines (0 = unbounded)")
