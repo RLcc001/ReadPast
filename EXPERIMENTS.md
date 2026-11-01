@@ -1154,3 +1154,21 @@ OVO 上 BT 对 RT 的 AUC：
 | 去掉证据检验 | 67.02（−2.15） | 70.39（−2.51） | 68.08（−2.60） |
 | SimpleStream | 64.75 | 67.66 | 67.42 |
 - 11-02 补充（用户）：证据检验采用"写得轻"的版本：不列为贡献，方法节"作答"部分用两三句话说明，消融表或附录保留"去掉证据检验"一行，实现细节注明是一次纯文本前向；附录给出误弃答率估计。
+
+## 第十三轮（事先登记，11-02）：第四个骨干 LLaVA-OneVision-7B（只报告，不改任何决定）
+
+用户 11-02 决定做 LLaVA-OV 的移植（审稿人会问"三个骨干都是 Qwen"）。权重 `llava-hf/llava-onevision-qwen2-7b-ov-hf`（HF 格式，ShallowStream 用的也是 HF transformers 的 LlavaOnevision 类；HF 缓存 16 GB）。只用 GPU 2、3。
+
+**移植**（`kfs/llava_ov.py`，`load_qa` 按模型名选后端；Qwen 的路径逐字不变）：
+- 视觉走 HF 的视频路径：每帧 SigLIP 384×384 → 投影 → 2×2 双线性池化 = 196 token；每个视觉块（近 4 帧）后接 1 个 image_newline，共 785 token。帧仍走共用的 SimpleStream 解码与缩放，再由 LLaVA 的处理器缩放到 384×384。
+- 提示格式用该权重自带的聊天模板："<|im_start|>user <video>\n{问题}<|im_end|><|im_start|>assistant\n"；题目文字与 Qwen 完全相同（SimpleStream 的模板）。时间线与 "Current view" 的位置和 Qwen 相同。
+- 核对（`kfs/test_llava_ov.py`，runs `261102-0812*`/`261102-081353-test_llava_ov`）：3 道题的 token 序列与 HF 处理器 + 聊天模板**完全一致**；逐帧编码与整段视频编码的特征差 2.8–3.9%，小于 bf16 本身相对 fp32 的误差（7.8%），属数值噪声；选项概率相差 ≤ 0.02。
+
+**Step 0（只作合理性检查，设置不完全可知）**：参考值是 ShallowStream 表 1/表 2 里作者重跑的 SimpleStream（LLaVA-OV-7B，4 帧）：OVO 60.3（RT 71.0 / BT 49.6，HLD 43.6），SB-RT 73.5。他们的采样率（论文 1 fps、配置 0.5 fps）和选择题提示词没有公开，所以容差放宽到 ±2.0；超出则先查实现并照实报告，不调提示词去凑。
+
+**流程**（与第九轮相同，全部不调参）：LLaVA-OV 自写 cap16 字幕（同一提示词，每 16 秒 8 帧）OVO、SB 各一份；L0 = 近 4 帧，L1 = 时间线 + 近 4 帧；门 (a) = route.py P0 + 空问题校准；证据检验 R1 = answer_prior.py；参考：SS 门（route_baselines）。
+
+**报告**（只报告，不改主方法）：
+- 完整方法（门 (a) + R1）相对 SimpleStream 的 OVO 标准总分、RT、SB；第九轮的过线标准（OVO avg ≥ r4 + 1.0，RT ≥ r4 − 0.3，SB ≥ r4，实时题读记忆 < 80%），分别用"不加 R1"和"都加 R1"两种口径报告；
+- 逐项去除消融（去掉时间线 / 门 / 证据检验）；
+- 全部读时不含 HLD 的 BT 增益（读者能力）、R1 的误弃答估计。

@@ -107,7 +107,9 @@ def main() -> None:
         videos = videos[: args.limit]
     print(json.dumps(vars(args)), f"{len(videos)} videos in shard", flush=True)
 
-    qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
+    from llava_ov import load_qa
+
+    qa = load_qa(args.model_path, "cuda:0", args.max_new_tokens)
     stats = defaultdict(float)
     t_start = time.perf_counter()
     for vi, video in enumerate(videos):

@@ -639,7 +639,9 @@ def main() -> None:
         groups = {g: [a for a in v if f"{a['task']}:{a['id']}" in keep] for g, v in groups.items()}
     print(json.dumps(vars(args)), {g: len(v) for g, v in groups.items()}, flush=True)
 
-    qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=args.max_new_tokens)
+    from llava_ov import load_qa
+
+    qa = load_qa(args.model_path, "cuda:0", args.max_new_tokens)
     need_clip = args.select.startswith("clip") or args.recall or args.cascade
     scorer = ClipScorer(args.clip_path, "cuda:0", args.cache_dir) if need_clip else None
 

@@ -175,7 +175,9 @@ def main() -> None:
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
-    qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=1)
+    from llava_ov import load_qa
+
+    qa = load_qa(args.model_path, "cuda:0", 1)
     tok = qa.processor.tokenizer
     a_id, b_id = single_token(tok, "A"), single_token(tok, "B")
     words = {w: sorted({tok.encode(s, add_special_tokens=False)[0] for s in (w, w.capitalize())}) for w in ("past", "now")}

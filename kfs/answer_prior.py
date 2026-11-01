@@ -28,9 +28,9 @@ import torch  # noqa: E402
 def letter_logprobs(qa: KFSModel, question: str, n_options: int) -> tuple[list[float], float]:
     """Same chat layout as KFSModel.generate_segments with no vision/timeline segments; first-step letter log-probs."""
     tok = qa.processor.tokenizer
-    ids = [qa._im_start_id] + tok.encode("user\n", add_special_tokens=False)
+    ids = [qa._im_start_id] + tok.encode("user" + getattr(qa, "role_sep", "\n"), add_special_tokens=False)
     ids += tok.encode("\n", add_special_tokens=False) + tok.encode(question, add_special_tokens=False)
-    ids += [qa._im_end_id] + tok.encode("\n", add_special_tokens=False)
+    ids += [qa._im_end_id] + tok.encode(getattr(qa, "end_sep", "\n"), add_special_tokens=False)
     ids += [qa._im_start_id] + tok.encode("assistant\n", add_special_tokens=False)
     logits = qa.model(input_ids=torch.tensor([ids], device=qa.model.device), use_cache=False).logits[0, -1].float()
     letter_ids = [tok.encode(chr(65 + i), add_special_tokens=False)[0] for i in range(n_options)]
@@ -46,7 +46,9 @@ def main() -> None:
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
-    qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=1)
+    from llava_ov import load_qa
+
+    qa = load_qa(args.model_path, "cuda:0", 1)
     print(json.dumps(vars(args)), flush=True)
     annos = [a for a in json.load(open(args.anno_path)) if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
     out, t0 = {}, time.perf_counter()

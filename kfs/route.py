@@ -48,8 +48,8 @@ ROUTE_PROMPT = ROUTE_PROMPTS[0]
 @torch.inference_mode()
 def p_past(qa: KFSModel, question: str, words: dict[str, list[int]], prompt: str = ROUTE_PROMPT) -> tuple[float, float]:
     tok = qa.processor.tokenizer
-    ids = [qa._im_start_id] + tok.encode("user\n" + prompt.format(question=question.strip()), add_special_tokens=False)
-    ids += [qa._im_end_id] + tok.encode("\n", add_special_tokens=False)
+    ids = [qa._im_start_id] + tok.encode("user" + getattr(qa, "role_sep", "\n") + prompt.format(question=question.strip()), add_special_tokens=False)
+    ids += [qa._im_end_id] + tok.encode(getattr(qa, "end_sep", "\n"), add_special_tokens=False)
     ids += [qa._im_start_id] + tok.encode("assistant\n", add_special_tokens=False)
     logits = qa.model(input_ids=torch.tensor([ids], device=qa.model.device), use_cache=False).logits[0, -1].float()
     p = torch.softmax(logits, dim=-1)
@@ -69,7 +69,9 @@ def main() -> None:
     args = ap.parse_args()
     os.makedirs(args.out_dir, exist_ok=True)
 
-    qa = KFSModel(model_name=args.model_path, device="cuda:0", max_new_tokens=1)
+    from llava_ov import load_qa
+
+    qa = load_qa(args.model_path, "cuda:0", 1)
     tok = qa.processor.tokenizer
     # first token of each spelling; all distinct single tokens for Qwen2.5
     words = {w: sorted({tok.encode(s, add_special_tokens=False)[0] for s in (w, w.capitalize())}) for w in ("past", "now")}
