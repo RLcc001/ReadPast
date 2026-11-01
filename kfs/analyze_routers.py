@@ -36,6 +36,8 @@ BACKBONES = {
                           route_sb="route_cal_sb_p0", routers="routers_q25", routers_cf="routers_cf_q25", paper_tau=None),
     "Qwen3-VL-8B": dict(ovo=("r4_q3", "cap16_q3"), sb="261101-0240*-sb_casc_q3_s[0-3]", route_ovo="route_q3_cal_p0",
                         route_sb="route_q3_cal_sb_p0", routers="routers_q3", routers_cf="routers_cf_q3", paper_tau=11.0),
+    "Qwen3-VL-4B": dict(ovo=("r4_q4", "cap16_q4"), sb="2611*-sb_casc_q4_s[0-3]", route_ovo="route_q4_cal_p0",
+                        route_sb="route_q4_cal_sb_p0", routers="routers_q4", routers_cf="routers_q4", paper_tau=None),
 }
 SYNTH = "kfs/data/route_synth_v1.json"
 
@@ -215,7 +217,7 @@ def main():
         cells[(name, "SB")] = sb_cell(name, cfg)
     names = [n for n in next(iter(cells.values())) if all(n in c for c in cells.values())]
     print("\n=== summary: gain over r4 per cell (pass = OVO avg >= r4+1.0 and RT >= r4-0.3; SB >= r4)")
-    print(f"{'rule':38s} " + " ".join(f"{b[:7]}-{x:3s}" for b, x in cells) + "   mean  passes")
+    print(f"{'rule':38s} " + " ".join(f"{b.replace('Qwen', 'Q').replace('-VL-', '-'):>7s}-{x:3s}" for b, x in cells) + "   mean  passes")
     for n in names:
         ds = [cells[c][n]["d_r4"] for c in cells]
         ok = sum(cells[c][n]["ok"] for c in cells)
