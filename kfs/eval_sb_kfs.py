@@ -33,6 +33,7 @@ from eval_ovo_kfs import (  # noqa: E402
     KFSModel,
     format_timeline,
     rxlib,
+    with_timeline,
     timeline_captions,
 )
 
@@ -67,6 +68,8 @@ def main() -> None:
     ap.add_argument("--note_mode", choices=list(NOTE_PROMPTS), default="desc")
     ap.add_argument("--note_tokens", type=int, default=128)
     ap.add_argument("--focus_budget", type=int, default=500, help="0 disables the focused L1")
+    ap.add_argument("--tl_pos", choices=["before", "after"], default="before",
+                    help="L1: timeline before the current view (default) or after it, next to the question")
     ap.add_argument("--focus_keep", type=int, default=2)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_sb")
@@ -120,7 +123,7 @@ def main() -> None:
                 timeline = format_timeline(caps)
                 cur = f"Current view (the latest {args.recent} seconds):\n"
                 if timeline:
-                    out1 = qa.generate_segments([timeline + cur, block], prompt, n_opt)
+                    out1 = qa.generate_segments(with_timeline(timeline, cur, [block], args.tl_pos), prompt, n_opt)
                 else:
                     out1 = out
                 rec.update(response_l1=out1["answer"], p_opts_l1=out1["p_opts"],

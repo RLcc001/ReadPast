@@ -338,6 +338,13 @@ def timeline_line(c: dict, num: int | None = None) -> str:
     return f"{f'[{num}] ' if num else ''}[{c['t0']}s-{c['t1']}s] {c['text'].strip()}\n"
 
 
+def with_timeline(timeline: str, cur: str, segs: list, pos: str) -> list:
+    """L1 prompt: timeline before the current view (default) or after it, right before the question (--tl_pos after)."""
+    if pos == "after":
+        return [cur] + segs + ["\n" + timeline.rstrip("\n")]
+    return [timeline + cur] + segs
+
+
 def format_timeline(caps: list[dict], numbered: bool = False) -> str:
     if not caps:
         return ""
@@ -472,7 +479,7 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         segments = [timeline + f"Frames recalled from the timeline clip [{c['t0']}s-{c['t1']}s]:\n", rblock,
                     f"\nCurrent view (the latest {len(recent)} seconds):\n"] + segments
     elif timeline:
-        segments = [timeline + f"Current view (the latest {len(recent)} seconds):\n"] + segments
+        segments = with_timeline(timeline, f"Current view (the latest {len(recent)} seconds):\n", segments, args.tl_pos)
     if timeline and args.cap_note:
         question = CAP_NOTE + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
@@ -586,6 +593,8 @@ def main() -> None:
     ap.add_argument("--retain", choices=["recency", "surprise", "relevance"], default="recency")
     ap.add_argument("--surprisal", default="", help="dir from kfs/surprisal.py (default {captions}_surprisal)")
     ap.add_argument("--foreign_timeline", action="store_true", help="control: caption texts from another video")
+    ap.add_argument("--tl_pos", choices=["before", "after"], default="before",
+                    help="timeline before the current view (default) or after it, next to the question")
     ap.add_argument("--flush", action="store_true", help="caption the partial clip up to the query time")
     ap.add_argument("--flush_min", type=float, default=2.0)
     ap.add_argument("--cascade", default="", help="route.json from kfs/route.py: progressive memory access")
