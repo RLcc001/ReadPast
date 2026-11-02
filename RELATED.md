@@ -151,3 +151,28 @@ FOLIO 只给了 RT、BT 和 HLD，用 BT = (EPM + ASI + HLD) / 3 反推 EPM、AS
   - 用外来 / 打乱的记忆做对照，证明 HLD 的提升与记忆内容无关；
   - 按不含 HLD 的口径重算已发表方法，说明其领先集中在 HLD。
 - 其他领域的类似对照：RAG 里加入随机无关文档反而提升精度（Cuconasu et al., The Power of Noise, SIGIR 2024）；VQA 的语言先验 / 盲基线（Goyal et al. 2017 VQA v2；Agrawal et al. 2018 VQA-CP）。
+
+## 补充（2026-11-02）：ShallowStream 表 1/表 2 逐项数字与"不含 HLD"重算（arXiv 2609.02780 v2，逐字读表）
+
+不含 HLD = (RT + (EPM + ASI) / 2) / 2。‡ = 作者重跑。ShallowStream 全文与参考文献都没有引用 FOLIO。
+
+| OVO | RT | EPM | ASI | HLD | 标准总分 | 不含 HLD |
+|---|---|---|---|---|---|---|
+| Qwen3-8B SimpleStream‡（他们） | 80.2 | 53.2 | 60.1 | 44.1 | 66.4 | 68.43 |
+| Qwen3-8B SimpleStream（我们复现，与官方逐题一致） | 81.36 | 52.19 | 58.11 | 51.61 | 67.66 | 68.25 |
+| Qwen3-8B ReKV‡ | 70.8 | 58.6 | 71.6 | 22.6 | 60.8 | 67.95 |
+| Qwen3-8B HERMES‡ | 69.1 | 50.5 | 65.5 | 19.9 | 57.2 | 63.55 |
+| Qwen3-8B OASIS | 78.1 | 62.0 | 60.1 | 47.3 | 67.7 | 69.58 |
+| Qwen3-8B ShallowStream | 80.9 | 52.5 | 72.3 | 49.5 | 69.5 | 71.65 |
+| Qwen3-8B FOLIO（BT 反推） | 82.0 | 61.4（均值） | | 84.6 | 75.55 | 71.67 |
+| Qwen3-8B 我们 门 (a) / 完整方法 | 81.65 | 51.85 | 69.59 | 55.91 / 70.97 | 70.39 / 72.89 | 71.19 |
+| LLaVA-OV SimpleStream‡（他们） | 71.0 | 53.2 | 52.0 | 43.6 | 60.3 | 61.80 |
+| LLaVA-OV SimpleStream（我们复现） | 74.73 | 55.56 | 54.73 | 20.43 | 59.15 | 64.94 |
+| LLaVA-OV HERMES‡ | 66.3 | 62.0 | 60.8 | 26.9 | 58.1 | 63.85 |
+| LLaVA-OV ShallowStream | 75.4 | 50.2 | 50.7 | 46.2 | 62.2 | 62.93 |
+
+SB-RT：Qwen3-8B SimpleStream‡ 76.5、HERMES‡ 76.6、ShallowStream 78.2（我们复现的 SimpleStream 80.28，SimpleStream 论文 80.59，我们门 (a) 81.64）；LLaVA-OV SimpleStream‡ 73.5、CausalMem 74.3、ShallowStream 75.5。
+
+- Qwen3 不含 HLD：FOLIO 71.67 ≈ ShallowStream 71.65 > 我们 71.19；相对各自的 SimpleStream：ShallowStream +3.23，我们 +2.94。
+- ShallowStream 在 Qwen3 OVO 上的增益结构和我们几乎一样：ASI +12.2、HLD +5.4、RT +0.7、EPM −0.7。EPM 不涨是两种方法共有的。
+- 基线复现差异大：他们的 SimpleStream 在 Qwen3 SB 上比论文低 4.1，在 LLaVA-OV OVO 上 HLD 43.6 对我们 20.4、RT 71.0 对 74.7。绝对分数不可直接比，应以"相对各自复现的 SimpleStream"为主。
