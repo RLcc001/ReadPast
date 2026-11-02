@@ -1284,3 +1284,25 @@ Step 0（SB）：r4 74.64，ShallowStream 重跑 73.5，差 +1.14（±2.0）→ 
 - Qwen2.5 即使只给最匹配的那条字幕，也只比 r4 高 2.6（Qwen3 高 8.0），而同一份 Qwen2.5 字幕交给 Qwen3 读能 +6（第七轮 2×2）。Qwen2.5 的问题是读者能力本身，不是长度或干扰；按事先判定这不算"读取空间"，单独记下。
 - 词重合规则在 oracle 字幕上能到 64–65%，但 oracle 是按答案的词挑的，这个数偏高，只作参照。
 - 结论：剩下的杠杆在写入端——约 38–40% 的记忆题答案没写进字幕；写进去的题，Qwen3 已经基本用上了。对 D-HSM 的借鉴：细粒度检索 / 动态截断预期收益小（最多是在"答案不在字幕里"的题上不读，Qwen3 约 +0.5 不含 HLD）；值得试的是写入格式（分字段观察）。
+
+## 第十五轮（事先登记，11-02，用户同意下载代码与嵌入模型）：在我们的设置下重跑公开的 D-HSM（快速验证）
+
+**目的**：D-HSM（arXiv 2608.30294，EMNLP 2026 Findings）的实体图记忆在记忆题（EPM、ASI）上是否比我们的平铺时间线带来更多收益；它的 HLD 72.0 从哪里来。
+
+**代码与环境**：`third_party/D-HSM`（GitHub Oshikaka/D-HSM，commit 04579a0，MIT，不进我们的 git）；启动 `kfs/run_dhsm.sh`，参数照抄其 `scripts/run_eval.sh`（entity_resolved 记忆、关键词门、Qwen2.5 动态 top-k 上限 8、20 个历史片段、近 4 帧、1 fps、flash-attn、单进程）。环境 `envs/dhsm` = Qwen3 环境的 torch 2.9.1 + 按其 requirements 装的 transformers 5.5.0、sentence-transformers 6.1.0、accelerate 1.13.0、torchcodec 0.9.0、qwen-vl-utils 0.0.11（只装在 dhsm 环境里；与原作的差别：Python 3.12、numpy 2.5.4）。冒烟测试：transformers 4.57 下批量写观察报错（mm_token_type_ids），换成 5.5.0 后 6 题正常（run `261102-153221-smoke_dhsm3`，带记忆约 34 秒/题）；嵌入模型 BAAI/bge-small-en-v1.5（HF 缓存）。数据用本地 OVO（同一个 `ovo_bench_new.json` 与 `chunked_videos/{id}.mp4`），不下载他们的数据。
+
+**读代码发现**：默认答题提示 `--mcq_prompt_policy uniform_abstention` 在每道选择题加一条固定指令（`experiments/ovo_protocol.py`）："Choose a content option only when the available evidence directly answers the question. If the evidence is insufficient, only indirectly related, or retrieval reports "未找到匹配节点", choose an option indicating that the question cannot be answered, if such an option is available." 检索为空时还会在提示里写"未找到匹配节点"。论文正文我们没读到这一点。`--mcq_prompt_policy official` 关掉指令；`--history_mode recent_only` 是同一流程、不建记忆的基线。
+
+**设计**：Qwen2.5-VL-7B，OVO backward 全部 631 题（EPM 297、ASI 148、HLD 186），2×2 共 4 个任务：
+① recent_only / official　② recent_only / uniform_abstention　③ dhsm / official　④ dhsm / uniform_abstention（论文设置）。
+为了速度，带记忆的两格各按题目轮流切成 5 份（`kfs/data/ovo_bt_shard{k}of5.json`，每题的记忆独立构建，切分不影响结果），不带记忆的两格各 1 个任务；先排 ①③（判定用），再排 ②④。
+
+**报告与判定**（`python3 kfs/analyze_dhsm.py`）：
+- 复现检查：④ 与论文（EPM 52.9、ASI 63.5、HLD 72.0）各差多少；超过 ±3 的照实报告，结论相应打折。
+- **M_D = ③ − ① 的 EPM、ASI 均值差**（D-HSM 记忆在记忆题上的收益，视频级自助 CI）；M_ours = 我们门 (a) − r4_ss 在同一批题上的 EPM、ASI 均值差（+1.52；全部读 +2.36 只报告）。
+  - M_D ≤ M_ours + 1.0 → "复杂结构没有比平铺时间线带来更多记忆收益"在 Qwen2.5 上成立；
+  - M_D ≥ M_ours + 3.0 → 结构确实有用，转向借鉴其写入格式；
+  - 其他 → 只报告。
+- HLD 分解：② − ①（弃答指令）、③ − ①（记忆）、④ − ①（两者）。
+- 只报告：① 与我们 r4_ss 的差（两条流程的取帧、分辨率不同）；失败题数。
+- 局限：一个骨干、只有 backward、没有外来记忆对照；transformers 版本与原作不同。
