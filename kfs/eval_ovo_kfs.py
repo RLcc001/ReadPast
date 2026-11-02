@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 DECODE_THREADS = int(os.environ.get("KFS_DECODE_THREADS", "0"))  # 0 = decord default (all cores)
 import re
 import sys
@@ -69,6 +70,8 @@ from lib.qwen_exact_recent_decoder import (  # noqa: E402
 from lib.recent_window_eval import calculate_ovo_scores, load_jsonl_results  # noqa: E402
 from lib.recent_window_eval_qwen25 import RecentWindowQAModel, build_qwen25_prompt  # noqa: E402
 from ovo_constants import BACKWARD_TASKS, REAL_TIME_TASKS  # noqa: E402
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from answer_match import best_caption  # noqa: E402
 from qwen_vl_utils.vision_process import smart_resize  # noqa: E402
 
 HIST_NOTE = (
@@ -460,6 +463,17 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         question = HIST_NOTE + question
     caps = timeline_captions(args.captions, anno["video"], full[-1] / plan.raw_fps) if args.captions else []
     n_caps_all = len(caps)
+    tl_oracle, tl_sel = None, None
+    if args.tl_select:
+        # diagnostic (uses the answer): keep one caption only -- the best answer match, or a random other one
+        tl_oracle = best_caption(caps, anno["answer"])
+        if args.tl_select == "oracle":
+            pick = tl_oracle
+        else:
+            others = [i for i in range(len(caps)) if i != tl_oracle]
+            pick = random.Random(f"{anno['task']}:{anno['id']}").choice(others) if others else None
+        caps = [caps[pick]] if pick is not None else []
+        tl_sel = [caps[0]["t0"], caps[0]["t1"]] if caps else None
     if args.foreign_timeline:
         caps = foreign_captions(args.captions, anno["video"], caps)
     flush = None
@@ -510,6 +524,9 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         "n_captions_all": n_caps_all,
         "timeline_tokens": len(qa.processor.tokenizer.encode(timeline, add_special_tokens=False)) if timeline else 0,
         "flush": flush["text"] if flush else "",
+        "tl_select": args.tl_select,
+        "tl_oracle_idx": tl_oracle,
+        "tl_sel": tl_sel,
         "recall_clip": rclip,
         "recall_ts": [round(i / plan.raw_fps, 2) for i in recalled],
         "locate_answer": locate_answer,
@@ -613,6 +630,8 @@ def main() -> None:
     ap.add_argument("--lookback_k", type=int, default=4)
     ap.add_argument("--note_mode", choices=list(NOTE_PROMPTS), default="desc")
     ap.add_argument("--note_tokens", type=int, default=128)
+    ap.add_argument("--tl_select", choices=["", "oracle", "random1"], default="",
+                    help="diagnostic, uses the answer: timeline = the caption best matching the answer (oracle) or one random other caption")
     ap.add_argument("--keys", default="", help="json list of '<task>:<id>' to evaluate (subset runs)")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")

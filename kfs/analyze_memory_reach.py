@@ -28,23 +28,7 @@ CFG = {
                         caps="cache/captions_q3_s16"),
 }
 ANNO = "/data/REN/datasets/streaming/ovo_bench/ovo_bench_new.json"
-STOP = set("""a an the of to in on at by for with from and or is are was were be been do does did done what which who whom
-whose where when why how this that these those it its i me my we our you your he she his her they them their there here
-after before then than into onto over under up down out off about as not no yes can could would should will just
-person people video thing things some any one two""".split())
-
-
-def words(s):
-    out = set()
-    for w in re.findall(r"[a-z]+", s.lower()):
-        if len(w) < 3 or w in STOP:
-            continue
-        for suf in ("ing", "ed", "es", "s"):
-            if w.endswith(suf) and len(w) - len(suf) >= 3:
-                w = w[: -len(suf)]
-                break
-        out.add(w)
-    return out
+from answer_match import STOP, words  # noqa: E402,F401
 
 
 def captions(cap_dir, video):
