@@ -21,7 +21,8 @@ from analyze_route import RUNS, no_hld  # noqa: E402
 ANNO = "/data/REN/datasets/streaming/ovo_bench/ovo_bench_new.json"
 ABSTAIN = re.compile(r"^\s*(unable to answer|cannot tell)", re.I)
 CFG = {"Qwen2.5-VL-7B": ("Qwen2.5-VL-7B (dev)", "prior_q25"), "Qwen3-VL-8B": ("Qwen3-VL-8B (dev)", "prior_q3"),
-       "Qwen3-VL-4B": ("Qwen3-VL-4B (B3, held-out)", "prior_q4")}  # 4B: run once after adoption, report only
+       "Qwen3-VL-4B": ("Qwen3-VL-4B (B3, held-out)", "prior_q4"),  # 4B: run once after adoption, report only
+       "LLaVA-OV-7B": ("LLaVA-OV-7B (B4, report only)", "prior_lov")}  # round 13, report only
 COLS = ["avg", "rt", "mem", "EPM", "ASI", "HLD", "nohld"]
 EPS = 1e-6
 
@@ -95,7 +96,7 @@ def main():
               f" HLD {d['HLD']:+.2f} -> {'pass' if ok else 'fail'}; lead over SimpleStream {lead0:+.2f} -> {lead1:+.2f} (both + R1)")
         summary[name] = ok
         false_abstain(name, cfg, prior, base, mem, a, keys)
-    dev = [v for n, v in summary.items() if "4B" not in n]
+    dev = [v for n, v in summary.items() if "4B" not in n and "LLaVA" not in n]
     print(f"\nadopt R1 (both dev backbones pass): {all(dev)}")
 
 
