@@ -38,6 +38,8 @@ BACKBONES = {
                         route_sb="route_q3_cal_sb_p0", routers="routers_q3", routers_cf="routers_cf_q3", paper_tau=11.0),
     "Qwen3-VL-4B": dict(ovo=("r4_q4", "cap16_q4"), sb="2611*-sb_casc_q4_s[0-3]", route_ovo="route_q4_cal_p0",
                         route_sb="route_q4_cal_sb_p0", routers="routers_q4", routers_cf="routers_q4", paper_tau=None),
+    "LLaVA-OV-7B": dict(ovo=("r4_lov", "cap16_lov"), sb="2611*-sb_casc_lov_s[0-3]", route_ovo="route_lov_cal_p0",
+                        route_sb="route_lov_cal_sb_p0", routers="routers_lov", routers_cf="routers_lov", paper_tau=0.875),
 }
 SYNTH = "kfs/data/route_synth_v1.json"
 
