@@ -5,7 +5,7 @@
 set -e
 HIST=$1; POLICY=$2; shift 2
 source /workspace/streamkv/envs/dhsm/bin/activate
-export FORCE_QWENVL_VIDEO_READER=torchcodec TORCHCODEC_NUM_THREADS=2 MIN_PIXELS=50176 MAX_PIXELS=262144
+export FORCE_QWENVL_VIDEO_READER=torchcodec TORCHCODEC_NUM_THREADS=${TORCHCODEC_NUM_THREADS:-2} MIN_PIXELS=50176 MAX_PIXELS=262144
 export OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4
 cd /workspace/streamkv/third_party/D-HSM
 python experiments/evaluate_ovo.py \
