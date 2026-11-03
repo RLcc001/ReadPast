@@ -1519,3 +1519,45 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 
 - SB-RT 没有弃答选项，数字不变（相对 SimpleStream −0.20 / +1.36 / +1.48 / +0.28）。
 - 按事先约定：主方法 = 时间线 + 门 (a) + 条件弃答指令（取自 D-HSM，需引用）；R1 从方法中去掉。图 3 已改用 log-odds 重画（`paper/figs/fig3_calibration.py`）。
+
+## 第十八轮（方案，11-03，待 REN 确认）：同协议重跑 D-HSM 与 ShallowStream
+
+**目的**：主表里两者现在用的是论文值，各自的协议不同（它们复现的 SimpleStream 与我们差 1–4 分）。用公开代码在我们的数据、题目集合和计分下重跑，得到同协议数字。
+
+**共同原则**
+- 同协议 = 同一份本地数据（OVO 1468 题 = 后向 631 + 实时 837；SB-RT 2500 题，本地 `questions_real.json`）、同一套骨干权重、同一个计分（标准 OVO = (BT+RT)/2，与我们的 `scores` 相同）。
+- 方法内部的选择（取帧、分辨率、提示、检索参数、门）按各自公开代码和配置的默认值，不调参。代码没定的地方用 SimpleStream 的协议补，并在论文里写明。
+- 不为凑论文数字改设置；与论文差多少照实报告。主表用重跑数，论文值放附录。重跑结果若高于 ReadPast，照实报告。
+- 只用 GPU 2、3（rx，`ren_stream_g23`）。
+
+**D-HSM**（`third_party/D-HSM` @04579a0，环境 `envs/dhsm`，`kfs/run_dhsm.sh`）
+- 论文设置：dhsm 记忆 + uniform_abstention（所有选择题加弃答指令）、近 4 帧、1 fps、MAX_PIXELS 262144；memory_floor / gate_strict_sim / top-k 上限由代码按骨干自动选（`dhsm/benchmark_defaults.py`）。
+- Qwen2.5：OVO 后向复用第十五轮 ④（同代码同参数，631 题）；补实时 837 题；SB-RT 2500 题。
+- Qwen3-8B：OVO 1468 题，SB-RT 2500 题。
+- 只报告：它自己的近帧基线（recent_only + 同一指令），Qwen2.5 实时 837 题、Qwen3 OVO 1468 题，用来给出"相对自身基线的提升"。
+- 论文值：Qwen2.5 OVO 70.9 / SB 82.5；Qwen3 71.45 / 83.1。第十五轮 Qwen2.5 后向的 HLD 已比论文低 8 分。
+
+**ShallowStream**（`third_party/ShallowStream` @0975506，MIT；环境 `envs/simplestream-qwen3`，transformers 4.57.6 / qwen-vl-utils 0.0.14 / flash-attn 2.8.3 / decord 0.6.0，与其 pyproject 一致）
+- 代码是完整方法，但没有评测脚本。读代码发现与论文对不上的地方：
+  1. 门：论文是 query-choice 门，τ_g = 11.0（Qwen3）/ 0.875（LLaVA）。发布的 Qwen OVO 配置用的是另一种门（anchor_hidden，阈值 −0.0024）；两个 SB 配置是 query-choice 门，阈值 0.0；LLaVA 没有 OVO 配置，通用配置不开门。
+  2. 没有选择题提示模板，也没有答案解析（`mcq_prompt_mode`、`ovobench_protocol` 两个配置键没有代码读取）。
+  3. LLaVA 路径在 transformers 4.57.6 下可能每帧 729 个视觉 token，而不是配置写的 196（池化只在 `hasattr(model, "apply_pooling")` 时调用，`ForConditionalGeneration` 没有这个方法）。
+- 新写 `kfs/eval_shallowstream.py`（只包一层，不改它的方法代码），填补方式：
+  - 配置：Qwen3 OVO 用 `qwen3vl_v3_ovobench.json`，Qwen3 SB 用 `qwen3vl_v3_streamingbench_q1_question_prune5.json`，LLaVA SB 用 `onevision_v3_streamingbench_q1_question_prune4.json`，都原样。LLaVA OVO 没有发布配置：用 `onevision_v3.json` + 论文的 query-choice 门（τ_g = 0.875，只看问题，实时路由保留最近 2 帧，后两项取自它的 LLaVA SB 配置）。
+  - 门的旁证：每题另外记录论文 query-choice 门的分数（纯文本，一次前向），报告它与实际所用门的判定一致率；Qwen3 上不一致超过 10% 时，补一个"论文门 τ_g = 11.0"的 Qwen3 OVO 任务（只报告）。
+  - 提示：OVO 用 SimpleStream 的 OVO 模板（`ovo_constants.BR_PROMPT_TEMPLATE`），SB 用 SimpleStream 的 SB 模板。两个模板都含 "Options:" 和 "best option"，正好触发它 LLaVA 路径自带的字母解析。
+  - 答案：按它的代码贪心生成，用 SimpleStream 的解析取字母；解析不出算错，报告个数。
+  - OVO：每题一个前缀视频（`chunked_videos/{id}.mp4`），无状态，与它配置注释"OVO one-shot"一致。
+  - SB：每个视频一个持久 session，按时间顺序提问（它配置注释写的 SB 用法），视频只给到提问时刻；实现细节在冒烟时定，记入笔记本。
+  - 729 token：冒烟时核实。若属实，补一行把池化转发到内层模型，使每帧 196 token（与配置一致），作为版本兼容修正写明。
+- 论文值：Qwen3 OVO 69.5 / SB 78.2；LLaVA 62.2 / 75.5（相对他们复现的 SimpleStream：OVO +3.1 / +1.9）。
+
+**冒烟（先跑）**：每个方法 × 骨干 6 道 OVO 题（含最长视频）+ 2 个 SB 视频。核对：能跑通、解析率、单题耗时、显存与内存峰值、LLaVA 每帧 token 数。都正常就直接提交全量，并把实测的总时长估计记入笔记本。
+
+**全量顺序**（按对主表的重要性）：① Qwen3-8B OVO：D-HSM、ShallowStream ② D-HSM Qwen2.5 OVO 实时 ③ ShallowStream LLaVA OVO ④ SB-RT 四格 ⑤ D-HSM 近帧基线（只报告）。
+
+**时间**：D-HSM 带记忆约 46 秒/题（第十五轮实测，每卡 3 个任务）。ShallowStream 每题要重新解码整段前缀、对全部前缀帧跑视觉编码，耗时随视频长度增长，冒烟后才能估。粗估全部 1–2 天。
+
+**分析**（`kfs/analyze_baselines.py`）：标准 OVO 总分与逐任务分数、SB-RT、相对我们 SimpleStream 的提升、读历史比例、失败题数、与论文的差。
+
+**局限（写进论文）**：ShallowStream 的提示模板、答案解析、LLaVA OVO 配置是我们补的；D-HSM 的 SB 用的是我们本地生成的 `questions_real.json`（与官方 json 可能有细微差别）。
