@@ -1561,3 +1561,11 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 **分析**（`kfs/analyze_baselines.py`）：标准 OVO 总分与逐任务分数、SB-RT、相对我们 SimpleStream 的提升、读历史比例、失败题数、与论文的差。
 
 **局限（写进论文）**：ShallowStream 的提示模板、答案解析、LLaVA OVO 配置是我们补的；D-HSM 的 SB 用的是我们本地生成的 `questions_real.json`（与官方 json 可能有细微差别）。
+
+### 第十八轮：REN 确认（11-03 "宣布开始"），按建议执行
+- ShallowStream Qwen3 用发布配置的门（同时记录论文 query-choice 门的分数）；LLaVA OVO = `onevision_v3.json` + 论文门 τ_g = 0.875；冒烟正常后直接提交全量。
+- **并入一组消融（事先登记）：弃答指令"每题都加"（D-HSM 原用法）对"只在有弃答选项时加"（ReadPast）。**
+  - 运行：`eval_ovo_kfs.py --abst_instr dhsm --abst_instr_when always`，只跑没有弃答选项的 1281 题（`kfs/data/keys_ovo_noabst1281.json`；另外 187 题两种用法提示完全相同，直接用第十七轮 `*_cinstr`），{近 4 帧, cap16} × {Qwen2.5, Qwen3-8B, 4B, LLaVA-OV} 共 8 个任务。
+  - 组合与计分同第十七轮：门 (a) 选 L0 / L1；1281 题用记录里的 `correct`（与原 run 同一判分），187 题按 p_opts argmax。
+  - 判定：Δ = (门 (a) + 条件指令) − (门 (a) + 每题都加)，标准 OVO。Δ > 0 的骨干 ≥ 3/4 → 论文写"按选项条件触发优于 D-HSM 的统一用法"；否则只写"两者相当，条件式不改动其余题的提示"。同时报告 SimpleStream + 每题都加，以及逐任务分数。
+  - 分析脚本：`kfs/analyze_round18_instr.py`。
