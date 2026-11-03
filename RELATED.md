@@ -48,7 +48,7 @@ OmniInteract、OVO-S-Bench、Streaming Interventions、StreamArena、APM-Bench�
    - **ShallowStream**：用模型内部信号检索（浅层注意力），门控只看问题文本、阈值离线标定一次，只在 Qwen3-8B / LLaVA-OV 上报告。
    - **FOLIO / StreamScout**：历史以**文本记忆**（实体记录、字幕时间线）形式提供，视觉只保留近帧。文本记忆不稀释对当前画面的感知（OneStreamer 的消融也是这个结论）。FOLIO 是唯一在 Qwen2.5-7B 上明显高于 SimpleStream 的免训练方法（RT/BT 均值约 67.1），但没有和 SimpleStream 直接比较。
 3. **"何时取历史"的门控是现在最热的点**：WRWS、ShallowStream、FlashBack、SAVEMem、StreamScout、SPARE 都在做。我们的创新点 2（置信度仲裁）和它们重叠很大。
-4. **HLD 是公认的难点**：BT 涨得多的方法主要涨在 HLD，靠训练弃答（SPARE 90、OneStreamer 99.5、StreamScout-R 98），或靠结构化记忆判断"出现过没有"（FOLIO 66.7 / 84.6）。StreamOPD 的主指标直接排除 HLD，并说明 SimpleStream 也把 HLD 单独报告。
+4. **HLD 是公认的难点**：BT 涨得多的方法主要涨在 HLD，靠训练弃答（SPARE 90、OneStreamer 99.5、StreamScout-R 98），或靠结构化记忆判断"出现过没有"（FOLIO 66.7 / 84.6）。StreamOPD 的主指标直接排除 HLD，并称 "following SimpleStream"；但 SimpleStream 主表的 Avg 其实含 HLD，只在 §5.3 论证 HLD 不是记忆任务、另定义 ER=(EPM+ASI)/2（11-03 核实）。
 5. **低分辨率历史帧**（我们的创新点 1）在这批工作里没人做，但单独效果小（4 帧时从 −2.9 改善到 −1.7）。
 
 ## 补充（2026-10-24）：和"增量字幕"最接近的工作

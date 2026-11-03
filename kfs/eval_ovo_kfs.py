@@ -89,6 +89,35 @@ VIEW_NOTE = (
     "Use the current view for what is happening now. If the question asks about something that does not appear "
     "in the video, it cannot be answered from the video.\n"
 )
+# --abst_instr dhsm (round 16 control): D-HSM's UNIFORM_ABSTENTION_INSTRUCTION (third_party/D-HSM
+# experiments/ovo_protocol.py) without its retrieval clause; prefixed to the question with a blank line, as D-HSM does.
+ABST_INSTR = {
+    "dhsm": (
+        "Choose a content option only when the available evidence directly answers the question. "
+        "If the evidence is insufficient or only indirectly related, choose an option indicating that the question "
+        "cannot be answered, if such an option is available."
+    ),
+}
+
+
+def is_abst_option(option: str) -> bool:
+    return option.strip().lower().startswith(("unable to answer", "cannot tell"))
+
+
+def apply_inject(annos: list[dict], path: str) -> int:
+    """Round 16: insert the abstention option at the slot given by kfs/make_inject.py; returns #questions changed.
+    Every multiple-choice anno gets 'abst_idx' (index of its abstention option, or None)."""
+    inj = json.load(open(path)) if path else {"positions": {}}
+    n = 0
+    for a in annos:
+        pos = inj["positions"].get(f"{a['task']}:{a['id']}")
+        if pos is not None:
+            a["options"] = a["options"][:pos] + [inj["option"]] + a["options"][pos:]
+            a["gt"] = a["gt"] + (pos <= a["gt"])
+            n += 1
+        if "options" in a:
+            a["abst_idx"] = next((i for i, o in enumerate(a["options"]) if is_abst_option(o)), None)
+    return n
 
 NOTE_PROMPTS = {
     "desc": (
@@ -504,12 +533,17 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         question = CAP_NOTE + question
     elif not timeline and args.view_note:
         question = VIEW_NOTE + question
+    if args.abst_instr:
+        question = ABST_INSTR[args.abst_instr] + "\n\n" + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
         "id": anno["id"],
         "video": anno["video"],
         "task": anno["task"],
         "question": anno["question"],
+        "n_opts": len(anno["options"]),
+        "abst_idx": anno.get("abst_idx"),
+        "pred": chr(65 + int(np.argmax(out["p_opts"]))),
         "response": out["answer"],
         "ground_truth": chr(65 + anno["gt"]),
         "p_opts": out["p_opts"],
@@ -638,7 +672,11 @@ def main() -> None:
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
     ap.add_argument("--max_new_tokens", type=int, default=256)
     ap.add_argument("--limit", type=int, default=0, help="first N questions per task group (smoke tests)")
+    ap.add_argument("--inject_abst", default="", help="round 16: kfs/data/ovo_inject_abst_v1.json (insert an abstention "
+                    "option into answerable questions; answers are then scored by the letter-probability argmax)")
+    ap.add_argument("--abst_instr", choices=["", *ABST_INSTR], default="", help="round 16: prefix an abstention instruction")
     args = ap.parse_args()
+    assert not (args.cascade and (args.inject_abst or args.abst_instr)), "round-16 options are for evaluate_one only"
     assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"
     assert not args.recall or (args.captions and args.k == 0), "--recall needs --captions and no history keyframes"
     assert not args.budget or args.captions, "--budget needs --captions"
@@ -647,6 +685,8 @@ def main() -> None:
     args.surprisal = args.surprisal or args.captions.rstrip("/") + "_surprisal"
 
     annos = json.load(open(args.anno_path))
+    if args.inject_abst:
+        print("inject_abst:", apply_inject(annos, args.inject_abst), "questions", flush=True)
     groups = {
         "backward": [a for a in annos if a["task"] in BACKWARD_TASKS],
         "realtime": [a for a in annos if a["task"] in REAL_TIME_TASKS],
@@ -680,6 +720,8 @@ def main() -> None:
                 fh.write(json.dumps({**r, "_key": key}, ensure_ascii=False) + "\n")
                 fh.flush()
 
+    if args.inject_abst:  # letters beyond D exist now; extract_mcq_answer only reads A-D
+        results = {g: [{**r, "response": r["pred"]} for r in v] for g, v in results.items()}
     summary = calculate_ovo_scores(results["backward"], results["realtime"], [])
     bt = float(np.mean([v["accuracy"] for v in summary["backward"].values()]))
     rt = float(np.mean([v["accuracy"] for v in summary["realtime"].values()]))
