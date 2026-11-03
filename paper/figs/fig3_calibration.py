@@ -66,7 +66,7 @@ def ridge(ax, rows):
     exact = all(r["exact"] for r in rows)
     span = max(abs(x) for r in rows for xs in r["lo"].values() for x in xs)
     LIM = float(min(30, max(12, math.ceil(span)))) if exact else 12.0
-    bins = np.linspace(-LIM - 0.5, LIM + 0.5, 61 if exact else 50)
+    bins = np.linspace(-LIM - 0.25, LIM + 0.25, 122 if exact else 50)
     H = 0.40
     for i, r in enumerate(rows):
         y0 = len(rows) - 1 - i
