@@ -1646,3 +1646,6 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 4. 已有、直接放进论文的：近帧数 N = 8（第六轮 `cap16_r8`，Qwen2.5）；路由提示词的三种改写（`route_cal_p{0,1,2}`，Qwen2.5）。
 
 - 11-04 REN 要求删除数据集压缩包：已删 `datasets/streaming/ovo_bench/_archives`（186 GB）和 `datasets/streaming/streamingbench/_archives`（123 GB），/data 已用 3.5T → 3.2T。解压后的视频、标注和 CSV 都在；OVO 的 README.md 已复制到 `ovo_bench/`。以后如需重新解压，要用 `scripts/download_data.sh` 重新下载。
+
+## 后续计划（11-04，REN）
+- 写完 ReadPast 之后的下一个项目：带训练模块或 agentic 的流式视频理解。现在不启动，只记录方向：训练写入端（决定写什么），或带着问题按时间线定位、回看原帧。最便宜的先导实验：Qwen3-8B 上 445 道 EPM/ASI，比较"按时间线定位回看"、只读时间线、CLIP 取帧三种做法。
