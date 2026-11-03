@@ -533,7 +533,7 @@ def evaluate_one(args, qa: KFSModel, scorer: ClipScorer | None, anno: dict) -> d
         question = CAP_NOTE + question
     elif not timeline and args.view_note:
         question = VIEW_NOTE + question
-    if args.abst_instr:
+    if args.abst_instr and (args.abst_instr_when == "always" or any(is_abst_option(o) for o in anno["options"])):
         question = ABST_INSTR[args.abst_instr] + "\n\n" + question
     out = qa.generate_segments(segments, question, len(anno["options"]))
     return {
@@ -675,6 +675,8 @@ def main() -> None:
     ap.add_argument("--inject_abst", default="", help="round 16: kfs/data/ovo_inject_abst_v1.json (insert an abstention "
                     "option into answerable questions; answers are then scored by the letter-probability argmax)")
     ap.add_argument("--abst_instr", choices=["", *ABST_INSTR], default="", help="round 16: prefix an abstention instruction")
+    ap.add_argument("--abst_instr_when", choices=["always", "option"], default="always",
+                    help="round 17: 'option' = only when the question's options already contain an abstention option")
     args = ap.parse_args()
     assert not (args.cascade and (args.inject_abst or args.abst_instr)), "round-16 options are for evaluate_one only"
     assert not args.captions or args.layout == "ss", "--captions is implemented for the ss layout only"

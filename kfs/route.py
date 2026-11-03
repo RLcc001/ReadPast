@@ -6,7 +6,8 @@ the next-token distribution over "past" / "now" gives p_past. One fixed prompt, 
 Contextual calibration (Zhao et al., 2021): p_past of content-free questions ("N/A", "", "[MASK]"), averaged, is
 written to {out_dir}/calib.json; the calibrated rule "past iff p_past >= p_cf" needs no threshold tuning.
 
-Output: {out_dir}/route.json  {"<task>:<id>" (OVO) or "<question_id>" (--bench sb): {"p_past": float, "mass": float}}
+Output: {out_dir}/route.json  {"<task>:<id>" (OVO) or "<question_id>" (--bench sb): {"p_past": float, "mass": float,
+        "lo": log P(past) - log P(now)}}
 
 usage: python kfs/route.py --out_dir $RX_RUN_DIR/out
 """
@@ -46,7 +47,10 @@ ROUTE_PROMPT = ROUTE_PROMPTS[0]
 
 
 @torch.inference_mode()
-def p_past(qa: KFSModel, question: str, words: dict[str, list[int]], prompt: str = ROUTE_PROMPT) -> tuple[float, float]:
+def p_past(qa: KFSModel, question: str, words: dict[str, list[int]], prompt: str = ROUTE_PROMPT,
+           with_logodds: bool = False):
+    """p_past = P(past) / (P(past) + P(now)) and the letter mass; with_logodds also returns log P(past) - log P(now)
+    computed in log space (p_past saturates at 0 / 1 in float32 for Qwen3)."""
     tok = qa.processor.tokenizer
     ids = [qa._im_start_id] + tok.encode("user" + getattr(qa, "role_sep", "\n") + prompt.format(question=question.strip()), add_special_tokens=False)
     ids += [qa._im_end_id] + tok.encode(getattr(qa, "end_sep", "\n"), add_special_tokens=False)
@@ -55,7 +59,11 @@ def p_past(qa: KFSModel, question: str, words: dict[str, list[int]], prompt: str
     p = torch.softmax(logits, dim=-1)
     past = float(sum(p[i] for i in words["past"]))
     now = float(sum(p[i] for i in words["now"]))
-    return past / max(past + now, 1e-12), past + now
+    if not with_logodds:
+        return past / max(past + now, 1e-12), past + now
+    lp = torch.log_softmax(logits, dim=-1)
+    lo = float(torch.logsumexp(lp[words["past"]], 0) - torch.logsumexp(lp[words["now"]], 0))
+    return past / max(past + now, 1e-12), past + now, lo
 
 
 def main() -> None:
@@ -84,11 +92,13 @@ def main() -> None:
               if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS]
     out, t0 = {}, time.perf_counter()
     for key, question in qs:
-        pp, mass = p_past(qa, question, words, ROUTE_PROMPTS[args.prompt])
-        out[key] = {"p_past": round(pp, 5), "mass": round(mass, 5)}
+        pp, mass, lo = p_past(qa, question, words, ROUTE_PROMPTS[args.prompt], with_logodds=True)
+        out[key] = {"p_past": round(pp, 5), "mass": round(mass, 5), "lo": round(lo, 4)}
     json.dump(out, open(os.path.join(args.out_dir, "route.json"), "w"), indent=0)
-    cf = {q: p_past(qa, q, words, ROUTE_PROMPTS[args.prompt])[0] for q in ("N/A", "", "[MASK]")}
-    json.dump({"content_free": cf, "p_cf": sum(cf.values()) / len(cf)}, open(os.path.join(args.out_dir, "calib.json"), "w"), indent=1)
+    cf3 = {q: p_past(qa, q, words, ROUTE_PROMPTS[args.prompt], with_logodds=True) for q in ("N/A", "", "[MASK]")}
+    cf = {q: v[0] for q, v in cf3.items()}
+    json.dump({"content_free": cf, "p_cf": sum(cf.values()) / len(cf), "lo_content_free": {q: v[2] for q, v in cf3.items()}},
+              open(os.path.join(args.out_dir, "calib.json"), "w"), indent=1)
     print("calibration", cf, flush=True)
     print(f"done: {len(out)} questions in {time.perf_counter() - t0:.0f}s", flush=True)
 

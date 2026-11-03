@@ -1479,3 +1479,23 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 - 条件指令比 R1 在三个骨干上都高（+1.61 / +0.45 / +1.92），且不需要额外的纯文本前向。RT、ASI 不变；EPM 只有 4B 变了 1 题。
 - 同一规则也加到 SimpleStream 时，我们的领先为 +1.90 / +1.47 / +1.12（不加时 +2.27 / +2.72 / +0.67）。
 - 该指令是 D-HSM 默认提示词里的一句，需引用。正式数字需用"有弃答选项才加指令"的代码真跑一遍（只涉及 187 题）。
+
+## 第十七轮（11-03，用户已同意"一起运行"）：条件弃答指令替换 R1 + 门分数 log-odds 重跑
+
+**目的**
+1. 把上面离线组合的"只在有弃答选项时加 D-HSM 弃答指令"跑成真结果，替换 R1。
+2. 重跑 route.py，额外保存 log-odds（log P(past) − log P(now)），给图 3 用；原来的 p_past 只存 5 位小数，Qwen3 的分数大多饱和在 0 或 1。
+
+**代码**：`eval_ovo_kfs.py --abst_instr dhsm --abst_instr_when option`（选项里已有 "Unable to answer" / "Cannot tell" 才加指令，其余题提示词不变）；`route.py` 的 route.json 增加 `lo`，calib.json 增加 `lo_content_free`，p_past 的计算与舍入不变。题目集合 `kfs/data/keys_ovo_abstopt187.json`（HLD 186 + EPM 1）。
+
+**任务**（tag r17，容器 ren_stream_all，GPU 2、3）
+- 冒烟 `smoke_r17`（Qwen2.5 近 4 帧，10 题：5 道带弃答选项 + 5 道不带）。
+- 条件指令：{近 4 帧, cap16} × {Qwen2.5, Qwen3-8B, Qwen3-4B, LLaVA-OV} 共 8 个，只跑 187 题，冒烟通过后自动开始。
+- 门分数：route.py × 4 个骨干（OVO 1468 题）。
+
+**事先定的检查**
+- 冒烟：带弃答选项的 5 题与 `r4_inj_instr` 的 p_opts 逐字相同；不带的 5 题与 `r4_ss` 逐字相同。
+- 正式：Qwen2.5 / Qwen3-8B / 4B 的 187 题 p_opts 与第十六轮 `*_inj_instr` 逐字相同，于是标准 OVO = 离线组合（70.78 / 73.34 / 72.60），差 ≤ 0.1 算通过；LLaVA-OV 是新数字，只报告。
+- route 重跑：1468 题的 p_past 与原 route.json 逐字相同，sigmoid(lo) 与 p_past 在舍入误差内一致。
+
+**通过后的处理**：主方法 = 时间线 + 门 (a) + 条件弃答指令（注明取自 D-HSM）；R1 从方法中去掉；主表换成本轮数字；图 3 改用 log-odds 重画。
