@@ -1,0 +1,40 @@
+\section{Introduction}
+\label{sec:intro}
+% ~1.5 pages incl. Fig. 1 (fig1_teaser). Paragraph plan:
+
+% P1 Task. Streaming video QA: questions arrive at arbitrary times; some ask about the present (real-time), some about
+%    the past (backward). Benchmarks: OVO-Bench, StreamingBench. Cost/latency matter because the stream does not stop.
+\todo{P1: streaming VQA setting and why it differs from offline long-video QA.}
+
+% P2 Observation that motivates us. SimpleStream: recent 4 frames to a frozen VLM is a strong baseline, often better
+%    than memory systems on real-time questions; but backward questions fail when evidence left the window.
+%    Adding history *frames* hurts present perception (Qwen3-VL-8B: 4 history frames RT -4.03, 16 low-res frames -5.86;
+%    text timeline -0.81; EXPERIMENTS.md "实验 B 结果"). -> keep frames for the present, use text for the past.
+\todo{P2: SimpleStream is strong; history frames dilute present perception; text does not.}
+
+% P3 Two questions this raises: (i) when to read the past without labels or task names; (ii) how to make the model
+%    say "cannot answer" without hurting answerable questions (uniform abstention instruction hurts 3/4 backbones).
+\todo{P3: the two design questions (when to read; when to allow abstention).}
+
+% P4 Method in one paragraph (Fig. 1 teaser): self-written timeline + calibrated present/past gate + conditional
+%    abstention instruction (instruction text from D-HSM \cite{dhsm}; our change is when it is applied).
+\todo{P4: ReadPast overview.}
+
+% P5 Results headline: +6.03/+5.68/+5.18/+2.45 OVO over SimpleStream on 4 backbones, RT not lowered;
+%    same-protocol comparison with D-HSM (round 18); cost (round 19).
+\todo{P5: headline results.}
+
+% Contributions (TCSVT style: 3--4 bullets, each verifiable by a table/figure):
+\begin{itemize}
+  \item A training-free, plug-in extension of recent-frame streaming baselines that keeps the visual input at the
+        recent window and carries the past as a self-written text timeline; we show that text history preserves
+        real-time accuracy whereas history frames lower it (Sec.~\ref{sec:exp-analysis}).
+  \item A question-only present/past gate whose threshold is set without labels by content-free calibration
+        \cite{zhao2021calibrate}, performing on par with gates calibrated on labeled synthetic queries
+        \todo{wording after final gate comparison table} (Sec.~\ref{sec:method-gate}).
+  \item An analysis showing that an abstention instruction should be conditioned on the answer options:
+        applying it only when an abstention option exists outperforms applying it to every question on three of four
+        backbones (Sec.~\ref{sec:exp-ablation}).
+  \item Experiments on four backbones and two benchmarks, with same-protocol reruns of public training-free methods
+        (Sec.~\ref{sec:exp-main}).
+\end{itemize}

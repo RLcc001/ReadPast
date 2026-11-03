@@ -1,0 +1,14 @@
+% TCSVT: abstract 150--200 words. Draft below is ~180 words; numbers = round 17 (standard OVO = (BT+RT)/2).
+\begin{abstract}
+Streaming video question answering requires a model to answer about what is happening now and about what happened earlier, while the video keeps arriving.
+A strong recent baseline, SimpleStream, feeds only the latest few frames to an off-the-shelf video large language model and already rivals memory-based systems on real-time questions, but it cannot answer questions whose evidence has left the window.
+We present \method{}, a training-free, plug-in extension that keeps the visual input at the recent window and carries the past as text.
+The same frozen model periodically writes a short caption of the stream into a timestamped timeline; a present/past gate reads only the question and decides whether the timeline is needed, with its threshold set without any labels by content-free calibration; and an abstention instruction is added only when the answer options contain an abstention choice.
+On OVO-Bench, \method{} improves SimpleStream by 6.0, 5.7, 5.2, and 2.5 points on Qwen2.5-VL-7B, Qwen3-VL-8B, Qwen3-VL-4B, and LLaVA-OneVision-7B, without lowering real-time accuracy, and \todo{StreamingBench real-time and comparison with D-HSM under the same protocol, after round 18}.
+\todo{One sentence on cost from the efficiency table (round 19).}
+\end{abstract}
+
+\begin{IEEEkeywords}
+Streaming video understanding, video large language models, video question answering, training-free, memory, calibration.
+\end{IEEEkeywords}
+% TODO: choose EDICS category on ScholarOne (TCSVT requires at least one).

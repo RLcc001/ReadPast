@@ -1597,3 +1597,28 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 ### 投稿期刊（11-04 00:31）
 - **REN 决定：投 IEEE TCSVT**（中科院 1 区 Top），不投 Neurocomputing。第 8 行"目标是 2 区期刊"作废。
 - 格式（CASS 投稿说明 https://ieee-cas.org/node/3112）：IEEE 双栏 transactions 格式；Transactions Paper 投稿稿 ≤14 页（含图）；超长费从第 12 页起（该页：第 11 页之后每页 $110 会员 / $175 非会员；同站 node/3113 写的是第 9 页之后 $175，两页矛盾，投稿前在 ScholarOne 核对）；摘要 150–200 词；需 ScholarOne 账号 + ORCID，至少选一个 EDICS 类别；两页都没写盲审要求。
+
+## 第十九轮（方案，11-04，待 REN 确认）：效率测量（论文 §IV-F 效率表）
+
+**目的**：TCSVT 审稿几乎必问成本。在同一张 GPU 上、独占，测 SimpleStream / ReadPast / D-HSM 的写入开销、每题延迟和峰值显存。只报告，不设判定标准。
+
+**口径**（流式场景下成本分两块，分开报）：
+- **写入（每秒视频的成本）**：ReadPast 每 16 秒写一段字幕（8 帧一次生成）。报每段耗时（视觉编码 + 生成）的中位数 / p90、实时率 RTF = 每段耗时 / 16 秒、每段输出 token、写入峰值显存。D-HSM 报它每个 1 秒片段的抽取 + 实体解析耗时，同样换算成 RTF。
+- **回答（每题的成本）**：从帧解码完成到输出答案。ReadPast = 门（只读题目的一次前向）+ 回答（近 4 帧，门判"过去"时再加时间线）；SimpleStream = 只回答近 4 帧；D-HSM = 检索 + 回答。报中位数 / p90、输入 token（视觉 / 文字）、峰值显存。帧解码时间单独列，三个方法同口径。
+- OVO 评测里我们的字幕是事先写好的，D-HSM 的评测脚本是每题重建该题之前的记忆，所以两边日志里的"每题耗时"都不是流式延迟，不能直接拿来用。本轮按上面的口径重新计时。
+
+**样本**：
+- 写入：OVO 中按时长分层取 10 个视频，各取前 20 段，共 200 段。
+- 回答：OVO 100 题，BT 50 + RT 50，固定随机种子，按任务分层。
+- 每个阶段先预热 5 次不计；计时前后 `torch.cuda.synchronize()`；显存用 `torch.cuda.max_memory_allocated()`，每个阶段前重置。
+
+**骨干**：Qwen2.5-VL-7B、Qwen3-VL-8B（三个方法都测）。可选：ReadPast 和 SimpleStream 再测 Qwen3-VL-4B、LLaVA-OV-7B（各约 15 分钟）。
+
+**实现**：
+- 新脚本 `kfs/bench_latency.py`：模型加载一次，复用 `llava_ov.load_qa`、`route.p_past` 和评测时的提示词拼接，依次测写入、门、SimpleStream 回答、ReadPast 回答。
+- D-HSM：用它自己的代码和第十八轮完全相同的参数，在外面包一层计时（不改 `third_party/D-HSM` 的代码），把抽取和回答分开计时。实现前先核对它 `generate_time` 包含哪些步骤，保证和我们同口径。
+- 一致性检查：计时时 ReadPast、SimpleStream 的答案应与第十七轮同题逐字相同，D-HSM 的答案应与第十八轮相同（不同就说明计时的不是同一条代码路径，先查清再报）。
+
+**资源**：rx，GPU 2/3，每个任务预留 78 GB（独占整卡，避免和别的任务挤在一起影响计时）。等第十八轮全部结束后再提交。4 个任务（`bench_ours_{q25,q3}`、`bench_dhsm_{q25,q3}`），两卡各跑一个。估计 ReadPast + SimpleStream 每个骨干约 15–20 分钟，D-HSM 每个骨干约 40–60 分钟，总共约 1.5–2 小时。
+
+**产出**：效率表（列：写入 RTF、每段耗时、每题延迟中位数 / p90、相对 SimpleStream 的额外延迟、峰值显存、视觉 / 文字 token、OVO 准确率），写入论文 `paper/sections/experiments.tex` 的 §IV-F。

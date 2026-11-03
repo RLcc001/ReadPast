@@ -1,0 +1,26 @@
+\section{Related Work}
+\label{sec:related}
+% ~1.5 pages. Reading list: reports/TCSVT 论文写作 必读文献.md (in progress). Existing survey: RELATED.md.
+% Rule: methods in comparison tables must have public code; others are cited only.
+
+\subsection{Streaming Video Large Language Models}
+% Online/streaming VideoLLMs (KV-cache, memory banks, retrieval) and their benchmarks (OVO-Bench, StreamingBench).
+% SimpleStream \cite{simplestream} as the recent-window baseline; trained methods (SelectStream, SPARE, ...) cited.
+\todo{streaming VideoLLMs; benchmarks; trained vs training-free.}
+
+\subsection{Memory for Long and Streaming Video}
+% Visual-token memory vs text memory. Caption/text memory for long video (LLoVi, VideoAgent, ...);
+% streaming text memory: D-HSM \cite{dhsm} (hub-and-spoke entity memory), FOLIO, StreamScout, DeltaStreamer.
+% Our position: a plain timeline written by the same frozen model; contribution is not the memory structure.
+\todo{text vs visual memory; where ReadPast sits.}
+
+\subsection{Deciding When to Read the Past}
+% Adaptive retrieval in RAG (Self-RAG, Adaptive-RAG, FLARE, SKR, ...); streaming gates: ShallowStream
+% \cite{shallowstream} (query-logit gate, threshold on 200 synthetic labeled queries), FlashBack, WRWS, StreamScout.
+% Ours: question-only, threshold label-free via content-free inputs.
+\todo{when-to-retrieve gates and how their thresholds are set.}
+
+\subsection{Calibration and Abstention}
+% Contextual calibration \cite{zhao2021calibrate}, PMI/domain-context/batch calibration; we calibrate a binary routing
+% threshold rather than answer priors. Abstention/unanswerable QA; D-HSM's instruction; our conditional use.
+\todo{calibration lineage; abstention lineage.}

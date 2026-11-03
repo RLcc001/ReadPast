@@ -1,0 +1,41 @@
+% ReadPast -- IEEE TCSVT submission (skeleton, 2026-11-04)
+% Build: latexmk -pdf main.tex  (needs TeX Live with IEEEtran; or upload paper/ to Overleaf)
+% Page budget (TCSVT: <=14 pages at submission incl. figures; overlength charges from page 12 -> aim for 11):
+%   Abstract+Intro 1.5 | Related Work 1.5 | Method 2 | Experiments 4.5 | Limitations+Conclusion 0.5 | Refs ~1
+\documentclass[journal]{IEEEtran}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{cite}
+\graphicspath{{figs/}}
+
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\method}{ReadPast}
+
+\begin{document}
+
+\title{\method{}: See the Present, Read the Past for Training-Free Streaming Video Question Answering}
+% TODO: final title
+
+\author{Ren~\todo{full name},~and~\todo{co-authors}%
+\thanks{\todo{Affiliation, e-mail (TCSVT asks for affiliation and e-mail footnote).}}}
+
+\markboth{IEEE Transactions on Circuits and Systems for Video Technology}%
+{\method{}: Training-Free Streaming Video Question Answering}
+
+\maketitle
+
+\input{sections/abstract}
+\input{sections/intro}
+\input{sections/related}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\bibliographystyle{IEEEtran}
+\bibliography{refs}
+
+\end{document}
