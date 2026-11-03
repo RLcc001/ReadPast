@@ -5,7 +5,7 @@
 
 ## 约定
 
-- 课题（2026-10-24 定）：在 SimpleStream（只看最近 N 帧）之上做**免训练、即插即用**的关键帧选择，目标是 2 区期刊。期刊更看重完整性，不要求超过需要训练的 SOTA（如 SelectStream）。
+- 课题（2026-10-24 定）：在 SimpleStream（只看最近 N 帧）之上做**免训练、即插即用**的关键帧选择，目标是 2 区期刊。期刊更看重完整性，不要求超过需要训练的 SOTA（如 SelectStream）。**11-04 改为投 TCSVT（1 区 Top），见文末"投稿期刊"。**
 - 数据（2026-10-24 用户确认）：不下载额外数据集，只用本地的 OVO-Bench 和 StreamingBench-RT（StreamingBench 本地只有 Real-Time 部分的视频）。
 - 主指标：OVO-Bench 实时（RT）和回溯（BT）两类的任务宏平均，avg = (BT + RT) / 2，和 SimpleStream 论文一致；StreamingBench-RT 为第二个 benchmark。
 - 打分：SimpleStream 的 `extract_mcq_answer`（只认 A–D）。
@@ -1593,3 +1593,7 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
 - 每题都加时，没有弃答选项的 1281 题里改答的题数（近 4 帧 / cap16 全部读；改对 / 改错）：Qwen2.5 118（42/32）/ 121（26/43）；Qwen3-8B 142（16/31）/ 135（23/42）；4B 360（20/46）/ 311（29/49）；LLaVA 167（27/25）/ 142（21/43）。读时间线时，8 格里有 7 格改错多于改对。
 - Qwen2.5 的例外来自实时题：每题都加时 RT +1.4（ACR +4.6、ATR +4.3），与第十一轮"弃答提示帮 Qwen2.5 答实时题"一致；Qwen3-8B 的 RT −1.7、ASI −3.4，4B 的 ASI −3.3，LLaVA 的 EPM −3.3。
 - 资源调整：Qwen3 的 D-HSM 每进程实测约 18 GB，排队中的 34 个任务按原顺序重新提交，预留改为 Qwen3 24 GB、Qwen2.5 22 GB（每卡 3 个）；正在跑的 4 个不动。
+
+### 投稿期刊（11-04 00:31）
+- **REN 决定：投 IEEE TCSVT**（中科院 1 区 Top），不投 Neurocomputing。第 8 行"目标是 2 区期刊"作废。
+- 格式（CASS 投稿说明 https://ieee-cas.org/node/3112）：IEEE 双栏 transactions 格式；Transactions Paper 投稿稿 ≤14 页（含图）；超长费从第 12 页起（该页：第 11 页之后每页 $110 会员 / $175 非会员；同站 node/3113 写的是第 9 页之后 $175，两页矛盾，投稿前在 ScholarOne 核对）；摘要 150–200 词；需 ScholarOne 账号 + ORCID，至少选一个 EDICS 类别；两页都没写盲审要求。
