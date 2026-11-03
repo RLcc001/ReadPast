@@ -1644,3 +1644,5 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
    - 评测：每组跑"全部读"1468 题，加上带弃答选项的 187 题（条件指令），再按门 (a) 离线组合；门的结果不变，可以复用。
    - 资源：rx，GPU 2/3，等第十八轮 D-HSM 全部结束后提交。16 秒字幕共 8692 段，8 秒约 1.7 万段、32 秒约 4300 段；已有日志里每段约 2.3–5 秒，粗估两张卡总计半天到一天。先跑冒烟，按实测再定分片。
 4. 已有、直接放进论文的：近帧数 N = 8（第六轮 `cap16_r8`，Qwen2.5）；路由提示词的三种改写（`route_cal_p{0,1,2}`，Qwen2.5）。
+
+- 11-04 REN 要求删除数据集压缩包：已删 `datasets/streaming/ovo_bench/_archives`（186 GB）和 `datasets/streaming/streamingbench/_archives`（123 GB），/data 已用 3.5T → 3.2T。解压后的视频、标注和 CSV 都在；OVO 的 README.md 已复制到 `ovo_bench/`。以后如需重新解压，要用 `scripts/download_data.sh` 重新下载。
