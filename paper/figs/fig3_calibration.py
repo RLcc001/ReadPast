@@ -4,8 +4,8 @@ Left: distribution of the gate score log-odds(p_past) for backward questions (EP
 and real-time questions (should not), mirrored per backbone. Dashed line = fixed threshold 0.5; black tick = the
 label-free threshold p_cf (mean p_past of "N/A", "", "[MASK]"; small triangles = the three content-free questions).
 Right: share of questions sent to the past path with the fixed threshold (hollow) and with p_cf (filled).
-All numbers are read from the route runs. Caveat: route.py stored p_past rounded to 5 decimals, so Qwen3 scores
-below 1e-5 / above 1-1e-5 collapse into the edge bins (re-run route.py saving log-odds for the final version).
+All numbers are read from the route runs. Uses the round-17 reruns (route.json field "lo" = log P(past) - log P(now),
+exact) when present; otherwise falls back to logit(p_past) from the 5-decimal p_past, which saturates for Qwen3.
 
 usage (host): python3 paper/figs/fig3_calibration.py  ->  paper/figs/fig3_calibration.{pdf,png}
 """
@@ -31,7 +31,7 @@ BACKBONES = [("Qwen2.5-VL-7B", "route_cal_p0"), ("Qwen3-VL-8B", "route_q3_cal_p0
              ("Qwen3-VL-4B", "route_q4_cal_p0"), ("LLaVA-OV-7B", "route_lov_cal_p0")]
 BT = {"EPM", "ASI", "HLD"}
 NOW = "#6f6e69"  # neutral ink for real-time questions (grey = "frames only" path, as in figure 2)
-LIM, EPS = 12.0, 6e-6
+EPS = 6e-6
 
 
 def logit(p):
@@ -43,23 +43,30 @@ def data():
     task = {f"{a['task']}:{a['id']}": a["task"] for a in json.load(open(ANNO))}
     out = []
     for name, run in BACKBONES:
-        d = sorted(glob.glob(f"{RUNS}/*-{run}/out"))[-1]
+        new = sorted(glob.glob(f"{RUNS}/*-{run}_lo/out"))
+        d = new[-1] if new else sorted(glob.glob(f"{RUNS}/*-{run}/out"))[-1]
         route, calib = json.load(open(f"{d}/route.json")), json.load(open(f"{d}/calib.json"))
         cf = calib["content_free"]
         cf = json.loads(cf.replace("'", '"')) if isinstance(cf, str) else cf
         p_cf = calib["p_cf"]
+        exact = all("lo" in v for v in route.values())
         g = {"past": [], "now": []}
         for k, v in route.items():
-            g["past" if task[k] in BT else "now"].append(v["p_past"])
-        rate = {(grp, rule): 100 * np.mean([x >= th for x in xs])
+            g["past" if task[k] in BT else "now"].append((v["p_past"], v["lo"] if exact else logit(v["p_past"])))
+        rate = {(grp, rule): 100 * np.mean([x >= th for x, _ in xs])
                 for grp, xs in g.items() for rule, th in (("fixed", 0.5), ("cal", p_cf))}
-        out.append(dict(name=name, p_cf=p_cf, cf=list(cf.values()), lo={k: [logit(x) for x in xs] for k, xs in g.items()},
-                        rate=rate, n={k: len(xs) for k, xs in g.items()}))
+        cf_lo = list(calib["lo_content_free"].values()) if exact else [logit(c) for c in cf.values()]
+        out.append(dict(name=name, p_cf=p_cf, cf_lo=cf_lo, lo={k: [y for _, y in xs] for k, xs in g.items()},
+                        rate=rate, n={k: len(xs) for k, xs in g.items()}, exact=exact,
+                        run=os.path.basename(os.path.dirname(d))))
     return out
 
 
 def ridge(ax, rows):
-    bins = np.linspace(-LIM - 0.5, LIM + 0.5, 50)
+    exact = all(r["exact"] for r in rows)
+    span = max(abs(x) for r in rows for xs in r["lo"].values() for x in xs)
+    LIM = float(min(30, max(12, math.ceil(span)))) if exact else 12.0
+    bins = np.linspace(-LIM - 0.5, LIM + 0.5, 61 if exact else 50)
     H = 0.40
     for i, r in enumerate(rows):
         y0 = len(rows) - 1 - i
@@ -78,17 +85,21 @@ def ridge(ax, rows):
         right = t < 0
         ax.text(t + (0.35 if right else -0.35), y0 + 0.43, lab, fontsize=5.2, color=INK, ha="left" if right else "right",
                 va="center", zorder=5)
-        for c in r["cf"]:
-            ax.scatter([logit(c)], [y0 - 0.47], marker="^", s=7, c=INK2, lw=0, zorder=5, clip_on=False)
+        for c in r["cf_lo"]:
+            ax.scatter([min(max(c, -LIM), LIM)], [y0 - 0.47], marker="^", s=7, c=INK2, lw=0, zorder=5, clip_on=False)
         ax.text(-LIM - 1.2, y0, r["name"], fontsize=6.0, color=INK, ha="right", va="center", fontweight="bold")
     ax.axvline(0, color=MUTED, lw=0.7, ls=(0, (3, 2)), zorder=1)
     ax.text(0, len(rows) - 0.42, "fixed 0.5", fontsize=5.2, color=MUTED, ha="center", va="bottom")
     ax.set_xlim(-LIM - 0.6, LIM + 0.6)
     ax.set_ylim(-0.55, len(rows) - 0.3)
     ax.set_yticks([])
-    ticks = [-12, -8, -4, 0, 4, 8, 12]
+    step = 10 if LIM > 20 else 4
+    ticks = [t for t in range(-int(LIM), int(LIM) + 1) if t % step == 0]
+    labels = [f"{t:d}".replace("-", "−") for t in ticks]
+    if span > LIM:
+        labels[0], labels[-1] = "≤" + labels[0], "≥" + labels[-1]
     ax.set_xticks(ticks)
-    ax.set_xticklabels(["≤−12"] + [f"{t:d}".replace("-", "−") for t in ticks[1:-1]] + ["≥12"])
+    ax.set_xticklabels(labels)
     ax.set_xlabel("gate score: log-odds of p$_{past}$(question)", fontsize=6.2, color=INK2, labelpad=2)
     ax.tick_params(labelsize=5.6, colors=INK2, length=2, width=0.5)
     for s in ("top", "right", "left"):
@@ -137,7 +148,8 @@ def rates(ax, rows):
 def main():
     rows = data()
     for r in rows:
-        print(r["name"], f"p_cf={r['p_cf']:.3g}", {f"{k[0]}/{k[1]}": round(v, 1) for k, v in r["rate"].items()})
+        print(r["name"], r["run"], "exact" if r["exact"] else "rounded", f"p_cf={r['p_cf']:.3g}",
+              {f"{k[0]}/{k[1]}": round(v, 1) for k, v in r["rate"].items()})
     plt.rcParams.update({"font.family": "DejaVu Sans", "pdf.fonttype": 42, "ps.fonttype": 42})
     fig = plt.figure(figsize=(7.0, 2.6))
     ridge(fig.add_axes([0.125, 0.15, 0.53, 0.76]), rows)
