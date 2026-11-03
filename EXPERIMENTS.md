@@ -1569,3 +1569,5 @@ D-HSM ③ 的检索上下文和我们整条时间线在同一批题上：EPM 13 
   - 组合与计分同第十七轮：门 (a) 选 L0 / L1；1281 题用记录里的 `correct`（与原 run 同一判分），187 题按 p_opts argmax。
   - 判定：Δ = (门 (a) + 条件指令) − (门 (a) + 每题都加)，标准 OVO。Δ > 0 的骨干 ≥ 3/4 → 论文写"按选项条件触发优于 D-HSM 的统一用法"；否则只写"两者相当，条件式不改动其余题的提示"。同时报告 SimpleStream + 每题都加，以及逐任务分数。
   - 分析脚本：`kfs/analyze_round18_instr.py`。
+- **REN 决定（11-03 22:16）：ShallowStream 不重跑，直接用论文值**（Qwen3-8B OVO 69.5 / SB-RT 78.2；LLaVA-OV 62.2 / 75.5），表中标注"论文值，其自身协议"。`kfs/eval_shallowstream.py` 不写；`third_party/ShallowStream` @0975506 只留作读代码的依据（发布配置的门与论文 τ_g 不一致、没有选择题模板，见上）。第十八轮只剩 D-HSM 重跑 + 弃答指令消融。
+- 已提交：消融 8 个任务（`*_ainstr*`，22:14）；D-HSM 冒烟 4 个（`smoke_dhsm_{q25,q3}_r18`：OVO 3 道后向 + 3 道实时，含最长视频 EPM:88 / ATR:995；`smoke_dhsm_sb_{q25,q3}_r18`：SB 两个视频 sample_9 / sample_242，共 10 题）。后向的 EPM:0、HLD:300 与第十五轮 ④ 对比，检查能否复用。
