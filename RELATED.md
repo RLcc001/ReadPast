@@ -245,3 +245,23 @@ SB-RT：Qwen3-8B SimpleStream‡ 76.5、HERMES‡ 76.6、ShallowStream 78.2（�
   - 方法上不撞车：CAM 没有"由记忆冲突触发、只对选项核对"的证据核验，也没有防编造设计；我们计划的核验与它的验证器是两回事。
   - 支持我们的发现：用 GPT-5.2 回看原视频也只多 +1.3。
   - **对我们"结构不涨"结论的限定**：在 M3-Bench（长视频、以人物和关系为中心、多跳的开放式问题）上，实体图贡献 +19.7。我们和 D-HSM 的结论只在 OVO 记忆题、7–8B 写者上成立，论文里要写清这个范围。
+
+## 补充（2026-11-03）：公开代码情况（用户决定：不对比没有代码的方法）
+
+逐篇查了 arXiv abs、HTML 首页和项目页（很多仓库只在 HTML 页眉或项目页上给出，abs 里没有）。"无"指三处都没找到，或者只写了"代码将发布"。
+
+| 方法 | 是否训练 | 代码 | OVO / SB 评测脚本 | 代码支持的骨干 |
+|---|---|---|---|---|
+| SimpleStream | 免训练 | 有 | 有 / 有 | Qwen2.5-VL、Qwen3-VL |
+| D-HSM | 免训练 | github.com/Oshikaka/D-HSM | 有 / 有 | Qwen2.5-VL-7B、Qwen3-VL-8B |
+| ShallowStream | 免训练 | github.com/CURRENTF/ShallowStream（完整方法） | 无 / 无（只有 smoke 推理） | Qwen3-VL-8B、LLaVA-OV |
+| SAVEMem | 免训练 | github.com/wuhang03/savemem | 有 / 有 | Qwen2.5-VL |
+| ObjectStream | 免训练 | github.com/DMK041218/ObjectStream | 未确认 | Qwen2.5-VL-7B、Qwen3.5-9B |
+| DeltaStreamer | 免训练（智能体） | github.com/BBBBchan/DeltaStreamer | 有 / 有 | Qwen3.6-27B + 工具 |
+| ReKV / HERMES / InfiniPot-V / LiveVLM | 免训练 | 本地 third_party 已有 | — | — |
+| SelectStream | 训练 | github.com/Haonan-Ge/selectstream | 只有通用 eval | Qwen2.5-VL-7B、Qwen3-VL-8B |
+| StreamTTT | 训练 | github.com/zeyun-zhong/StreamTTT | 有 / 有（据 README） | Qwen3-VL-4B |
+| MaLoW | 训练 | github.com/dragonlzm/MaLoW（推理 + 权重；训练代码未放） | 未确认 | Qwen3-VL-4B、Qwen3.5 |
+| StreamOPD | 训练 | github.com/UniX-AI-Lab/StreamOPD | 有 / 有 | Qwen3.5-4B |
+| OneStreamer | 训练 | github.com/MCG-NJU/OneStreamer（权重未公开） | 有 / 有 | Qwen3-VL-4B |
+| WRWS、FOLIO、StreamScout、FlashBack、LatentStream、ReMem、FrameBlend、SPARE | — | 无 | — | — |
