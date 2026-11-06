@@ -153,11 +153,13 @@ class KFSModel(RecentWindowQAModel):
         self.per_frame_blocks = "qwen3" in self.model_name.lower()
 
     @torch.inference_mode()
-    def generate_segments(self, segments: list[str | VisionBlock], question: str, n_options: int) -> dict[str, Any]:
+    def generate_segments(self, segments: list[str | VisionBlock], question: str, n_options: int,
+                          cand: list[str] | None = None) -> dict[str, Any]:
         """Build `<im_start>user\\n{segments}\\n{question}<im_end>\\n<im_start>assistant\\n` and generate.
 
         With a single vision block this is token-for-token SimpleStream's Qwen2.5 prompt (per-frame blocks: its Qwen3
-        OVO prompt). Also returns the first-step distribution over the option letters (raw logits) as a confidence signal.
+        OVO prompt). Also returns the first-step distribution over the option letters (raw logits) as a confidence signal,
+        and with `cand` the first-step full-vocabulary probability of the first token of each candidate string.
         """
         tok = self.processor.tokenizer
         text_device = self._get_text_input_device()
@@ -182,10 +184,13 @@ class KFSModel(RecentWindowQAModel):
         attention_mask = torch.ones_like(input_ids)
         text_model = self._get_text_model()
         inputs_embeds = text_model.get_input_embeddings()(input_ids)
-        vis = torch.cat(embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
-        mask = (input_ids == self.image_token_id).unsqueeze(-1).expand_as(inputs_embeds)
-        inputs_embeds = inputs_embeds.masked_scatter(mask, vis)
-        grids = torch.cat(block_grids, dim=0).to(inputs_embeds.device)
+        if embeds:
+            vis = torch.cat(embeds, dim=0).to(inputs_embeds.device, inputs_embeds.dtype)
+            mask = (input_ids == self.image_token_id).unsqueeze(-1).expand_as(inputs_embeds)
+            inputs_embeds = inputs_embeds.masked_scatter(mask, vis)
+            grids = torch.cat(block_grids, dim=0).to(inputs_embeds.device)
+        else:  # text-only prompt (round 21 content-free probes without frames)
+            vis, grids = inputs_embeds[:0], None
         position_ids, _ = self._get_multimodal_model().get_rope_index(
             input_ids=input_ids, image_grid_thw=grids, video_grid_thw=None, attention_mask=attention_mask
         )
@@ -209,8 +214,10 @@ class KFSModel(RecentWindowQAModel):
         letter_ids = [tok.encode(chr(65 + i), add_special_tokens=False)[0] for i in range(n_options)]
         p_full = torch.softmax(logits, dim=-1)
         p_opts = torch.softmax(logits[letter_ids], dim=-1)
+        p_cand = [float(p_full[tok.encode(c, add_special_tokens=False)[0]]) for c in cand] if cand else None
         return {
             "answer": answer,
+            "p_cand": p_cand,
             "p_opts": [round(float(p), 5) for p in p_opts],
             "p_letters_mass": round(float(p_full[letter_ids].sum()), 5),
             "num_vision_tokens": int(vis.shape[0]),

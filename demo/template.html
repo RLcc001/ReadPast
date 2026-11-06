@@ -1,0 +1,473 @@
+<title>ReadPast Stream Replay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a stream-replay console. Method strip + score table on top, an example rail, then the stage:
+   live view | self-written timeline, and below it the question, the gate on a log-odds line, and the answers. */
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --sunk: #e9ebef;
+  --ink: #13161b;
+  --ink-2: #434a55;
+  --muted: #6f7783;
+  --line: #d9dde3;
+  --base: #6c7480;
+  --base-tint: #e4e7eb;
+  --mem: #128a62;
+  --mem-tint: #d5efe4;
+  --ours: #2a6fd6;
+  --ours-ink: #1d5bb8;
+  --ours-tint: #dce8fb;
+  --good: #11803a;
+  --bad: #bf3329;
+  --lure: #a8520f;
+  --lure-tint: #fbe2cc;
+  --display: "Archivo", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1115; --surface: #161a20; --sunk: #0a0c0f; --ink: #e6e8ec; --ink-2: #b3b9c3; --muted: #858d99;
+    --line: #2a2f37; --base: #a1a8b3; --base-tint: #252a32; --mem: #3cc293; --mem-tint: #11302a;
+    --ours: #619ff3; --ours-ink: #8ab8f7; --ours-tint: #172a46; --good: #4cc674; --bad: #f06b5f;
+    --lure: #f2a463; --lure-tint: #3a2614; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1115; --surface: #161a20; --sunk: #0a0c0f; --ink: #e6e8ec; --ink-2: #b3b9c3; --muted: #858d99;
+  --line: #2a2f37; --base: #a1a8b3; --base-tint: #252a32; --mem: #3cc293; --mem-tint: #11302a;
+  --ours: #619ff3; --ours-ink: #8ab8f7; --ours-tint: #172a46; --good: #4cc674; --bad: #f06b5f;
+  --lure: #f2a463; --lure-tint: #3a2614; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 56px; display: grid; gap: 28px; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ours); outline-offset: 2px; }
+
+/* header */
+.top { display: grid; gap: 14px; }
+.brand { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
+.brand h1 { font-family: var(--display); font-stretch: 72%; font-weight: 800; font-size: clamp(40px, 6vw, 60px); line-height: .95; letter-spacing: -.01em; }
+.brand h1 span { color: var(--ours); }
+.brand .tag { font-family: var(--display); font-stretch: 85%; font-weight: 500; font-size: clamp(18px, 2.2vw, 22px); color: var(--ink-2); }
+.lede { max-width: 72ch; color: var(--ink-2); font-size: 16px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { font-family: var(--mono); font-size: 12px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink-2); background: var(--surface); }
+
+/* method strip */
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+.step { padding: 16px 18px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.step + .step { border-left: 1px solid var(--line); }
+.step h3 { font-family: var(--display); font-stretch: 85%; font-weight: 700; font-size: 18px; }
+.step p { color: var(--ink-2); font-size: 14px; }
+.step .k { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+
+/* score table */
+.scores { display: grid; gap: 8px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 620px; font-variant-numeric: tabular-nums; }
+th, td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--mono); font-size: 11.5px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+th:first-child, td:first-child { text-align: left; }
+td .d { font-size: 12px; color: var(--muted); margin-left: 6px; }
+td .d.up { color: var(--good); }
+td .d.dn { color: var(--bad); }
+.who-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+.dot-base { background: var(--base); } .dot-mem { background: var(--mem); } .dot-ours { background: var(--ours); }
+tr.ours td { font-weight: 600; }
+.foot { font-size: 12.5px; color: var(--muted); max-width: 100ch; }
+
+/* example rail */
+.rail { display: flex; flex-wrap: wrap; gap: 8px; }
+.ex-btn { flex: 1 1 150px; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: var(--r); padding: 10px 12px;
+  cursor: pointer; display: grid; gap: 4px; align-content: start; min-width: 0; transition: border-color .15s, background .15s; }
+.ex-btn:hover { border-color: var(--muted); }
+.ex-btn[aria-pressed="true"] { border-color: var(--ours); background: var(--ours-tint); }
+.ex-btn .q { font-size: 13.5px; line-height: 1.35; color: var(--ink); }
+.ex-btn .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.kind { font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; padding: 1px 6px; border-radius: 4px; }
+.kind.past { background: var(--mem-tint); color: var(--mem); }
+.kind.now { background: var(--base-tint); color: var(--ink-2); }
+.kind.miss { background: var(--lure-tint); color: var(--lure); }
+.code { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+
+/* stage */
+.stage { border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); display: grid; }
+.stage-head { padding: 16px 18px; display: grid; gap: 4px; border-bottom: 1px solid var(--line); }
+.stage-head h2 { font-family: var(--display); font-stretch: 80%; font-weight: 700; font-size: clamp(22px, 3vw, 28px); line-height: 1.1; }
+.stage-head .sub { color: var(--muted); font-size: 13px; }
+.transport { padding: 12px 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; border-bottom: 1px solid var(--line); }
+.btn { border: 1px solid var(--line); background: var(--bg); border-radius: 8px; padding: 6px 12px; cursor: pointer; font-size: 13.5px; font-weight: 500; }
+.btn.primary { background: var(--ours); border-color: var(--ours); color: #fff; }
+.btn:hover { filter: brightness(1.05); }
+.scrub { flex: 1 1 260px; min-width: 0; display: grid; gap: 4px; }
+.track { position: relative; height: 22px; }
+.track .segs { position: absolute; inset: 7px 0; display: flex; gap: 2px; }
+.track .seg { height: 8px; border-radius: 2px; background: var(--base-tint); flex: 0 0 auto; }
+.track .seg.on { background: var(--mem); }
+.track .qmark { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ours); right: 0; }
+#scrub { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.track .head { position: absolute; top: 2px; width: 3px; height: 18px; background: var(--ink); border-radius: 2px; transform: translateX(-1px); pointer-events: none; }
+.time { font-family: var(--mono); font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+
+.panes { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); }
+.pane { padding: 16px 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.pane + .pane { border-left: 1px solid var(--line); }
+.pane-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.live { position: relative; aspect-ratio: 16 / 10; max-width: 100%; background: var(--sunk); border-radius: 8px; overflow: hidden; }
+.live img.single { width: 100%; height: 100%; object-fit: contain; display: block; }
+.live .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 100%; height: 100%; }
+.live .grid4 figure { margin: 0; position: relative; background: var(--sunk); min-width: 0; min-height: 0; }
+.live .grid4 img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.live .grid4 figcaption, .live .stamp { position: absolute; left: 6px; bottom: 6px; font-family: var(--mono); font-size: 11px; color: #fff;
+  background: rgba(0, 0, 0, .62); padding: 1px 6px; border-radius: 4px; }
+.live-note { font-size: 13px; color: var(--ink-2); }
+
+.timeline { list-style: none; margin: 0; padding: 0 4px 0 0; display: grid; gap: 8px; max-height: 470px; overflow-y: auto; scroll-behavior: smooth; }
+.entry { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px; border-radius: 8px; border: 1px solid var(--line); }
+.entry img { width: 84px; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 4px; display: block; background: var(--sunk); }
+.entry .ts { font-family: var(--mono); font-size: 12px; color: var(--mem); font-weight: 500; }
+.entry .tx { font-size: 13.5px; line-height: 1.45; color: var(--ink); }
+.entry.pending { border-style: dashed; color: var(--muted); grid-template-columns: minmax(0, 1fr); font-size: 13px; }
+.entry.fresh { animation: write .5s ease-out; }
+@keyframes write { from { background: var(--mem-tint); } to { background: transparent; } }
+mark { color: inherit; border-radius: 3px; padding: 0 2px; }
+mark.ev { background: var(--mem-tint); box-shadow: inset 0 -2px 0 var(--mem); }
+mark.lure { background: var(--lure-tint); box-shadow: inset 0 -2px 0 var(--lure); }
+.empty { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
+
+.after { border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); transition: opacity .35s; position: relative; }
+.after.waiting { opacity: .28; }
+.after .wait-note { position: absolute; inset: 0; display: none; place-items: center; z-index: 2; }
+.after.waiting .wait-note { display: grid; }
+.wait-note span { font-family: var(--mono); font-size: 13px; background: var(--surface); border: 1px solid var(--line); padding: 6px 12px; border-radius: 8px; color: var(--ink); }
+.qcard { font-size: 17px; font-weight: 500; line-height: 1.4; }
+.qcard .at { font-family: var(--mono); font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; font-weight: 400; }
+.gate svg { width: 100%; height: auto; display: block; overflow: visible; }
+.gate .verdict { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
+.chip { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 5px; font-weight: 500; }
+.chip.past { background: var(--mem-tint); color: var(--mem); }
+.chip.now { background: var(--base-tint); color: var(--ink-2); }
+.prompt { font-family: var(--mono); font-size: 12px; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; line-height: 1.45; }
+svg .ax { stroke: var(--line); stroke-width: 1; fill: none; }
+svg .tk { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .zone-past { fill: var(--mem-tint); }
+svg .zone-now { fill: var(--base-tint); }
+svg .zl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .04em; }
+svg .zl.past { fill: var(--mem); } svg .zl.now { fill: var(--ink-2); }
+svg .th { stroke: var(--ours); stroke-width: 2; }
+svg .th0 { stroke: var(--muted); stroke-width: 1.4; stroke-dasharray: 4 3; }
+svg .thl { font-family: var(--mono); font-size: 10.5px; fill: var(--ours-ink); }
+svg .thl0 { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+svg .mk { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+svg .mkl { font-family: var(--mono); font-size: 12px; font-weight: 500; fill: var(--ink); }
+
+.verdicts { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13.5px; }
+.verdicts .v { display: inline-flex; gap: 6px; align-items: center; }
+.ok { color: var(--good); font-weight: 600; } .no { color: var(--bad); font-weight: 600; }
+.opts { display: grid; gap: 10px; }
+.opt { display: grid; gap: 5px; padding: 8px 10px; border-radius: 8px; border: 1px solid transparent; }
+.opt.gt { border-color: var(--good); }
+.opt-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.opt-head .L { font-family: var(--mono); font-weight: 500; color: var(--muted); }
+.opt-head .gtb { font-family: var(--mono); font-size: 11px; color: var(--good); letter-spacing: .04em; text-transform: uppercase; }
+.bars { display: grid; grid-template-columns: 112px minmax(0, 1fr) 44px; gap: 3px 8px; align-items: center; font-size: 12px; }
+.bars .who { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars .tr { height: 8px; background: var(--sunk); border-radius: 4px; overflow: hidden; }
+.bars .fl { height: 100%; border-radius: 4px; transition: width .4s ease-out; }
+.fl.base { background: var(--base); } .fl.mem { background: var(--mem); } .fl.ours { background: var(--ours); }
+.bars .val { font-family: var(--mono); text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.story { padding: 16px 18px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.story p { max-width: 90ch; color: var(--ink); }
+
+@media (max-width: 760px) {
+  .steps { grid-template-columns: minmax(0, 1fr); }
+  .step + .step { border-left: 0; border-top: 1px solid var(--line); }
+  .panes, .after { grid-template-columns: minmax(0, 1fr); }
+  .pane + .pane { border-left: 0; border-top: 1px solid var(--line); }
+  .bars { grid-template-columns: 92px minmax(0, 1fr) 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Read<span>Past</span></h1>
+      <p class="tag">看见当下，读取过去。</p>
+    </div>
+    <p class="lede">流式视频模型只用最后 4 帧回答问题（SimpleStream）。ReadPast 让同一个模型每 16 秒给自己写一句字幕；只有当校准过的门控判断问题与过去有关时，才去读这条文字时间线。本页回放评测记录中的 6 道题。</p>
+    <div class="meta">
+      <span class="pill">Qwen3-VL-8B</span><span class="pill">OVO-Bench · 1,468 题</span><span class="pill">无需训练</span><span class="pill">回放已有输出，不实时运行模型</span>
+    </div>
+  </header>
+
+  <section class="steps" aria-label="ReadPast 的工作方式">
+    <div class="step"><span class="k">观看时</span><h3>写时间线</h3><p>每 16 秒，模型为刚结束的片段写一句字幕，追加一行 <span class="mono">[t0s–t1s] 文本</span>。帧本身不保留。</p></div>
+    <div class="step"><span class="k">问题到达时</span><h3>门控：过去还是现在？</h3><p>用一个纯文本提示询问这道题是否需要之前的视频内容。其 log-odds 与一个用无内容输入定出的阈值比较，不使用任何标注。</p></div>
+    <div class="step"><span class="k">回答</span><h3>需要时才读</h3><p><b>现在</b>：只用最后 4 帧，与 SimpleStream 完全相同。<b>过去</b>：时间线 + 最后 4 帧。若选项里有 “Unable to answer”，再加一句提示，说明可以选它。</p></div>
+  </section>
+
+  <section class="scores" aria-label="得分">
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Qwen3-VL-8B · OVO-Bench</th><th>OVO 平均</th><th>Backward</th><th>Real-time</th><th>读时间线的比例</th></tr></thead>
+        <tbody id="score-body"></tbody>
+      </table>
+    </div>
+    <p class="foot">OVO 平均为标准协议：Backward（EPM、ASI、HLD）与 Real-time（6 个任务）两类的平均。两行读时间线的方法都包含弃答提示。小字为相对 SimpleStream 的点数变化。所有数值由 <span class="mono">demo/build_data.py</span> 从运行记录重新计算。</p>
+  </section>
+
+  <nav class="rail" id="rail" aria-label="例子"></nav>
+
+  <section class="stage" id="stage" aria-live="polite">
+    <div class="stage-head">
+      <span class="label" id="ex-label"></span>
+      <h2 id="ex-title"></h2>
+      <span class="sub" id="ex-sub"></span>
+    </div>
+    <div class="transport">
+      <button class="btn primary" id="play" type="button">回放视频流</button>
+      <button class="btn" id="jump" type="button">跳到提问时刻</button>
+      <div class="scrub">
+        <div class="track" id="track">
+          <div class="segs" id="segs"></div>
+          <div class="qmark" title="提问时刻"></div>
+          <div class="head" id="head"></div>
+          <input type="range" id="scrub" min="0" max="100" step="0.5" value="100" aria-label="视频时间">
+        </div>
+      </div>
+      <span class="time" id="time"></span>
+    </div>
+    <div class="panes">
+      <div class="pane">
+        <div class="pane-title"><span class="label">实时画面</span><span class="label" id="live-label"></span></div>
+        <div class="live" id="live"></div>
+        <p class="live-note" id="live-note"></p>
+      </div>
+      <div class="pane">
+        <div class="pane-title"><span class="label">模型自己写的时间线</span><span class="label" id="tl-count"></span></div>
+        <ol class="timeline" id="timeline"></ol>
+      </div>
+    </div>
+    <div class="after" id="after">
+      <div class="wait-note"><span id="wait-text"></span></div>
+      <div class="pane gate">
+        <div class="qcard" id="qcard"></div>
+        <span class="label">门控</span>
+        <svg id="gate-svg" viewBox="0 0 520 112" role="img" aria-label="门控 log-odds"></svg>
+        <div class="verdict" id="verdict"></div>
+        <details>
+          <summary class="label" style="cursor:pointer">门控提示词（原文）</summary>
+          <p class="prompt" id="prompt"></p>
+        </details>
+      </div>
+      <div class="pane">
+        <span class="label">各选项的回答概率</span>
+        <div class="verdicts" id="verdicts"></div>
+        <div class="opts" id="opts"></div>
+      </div>
+    </div>
+    <div class="story"><span class="label">发生了什么</span><p id="story"></p></div>
+  </section>
+</div>
+
+<script>
+document.documentElement.lang = "zh-CN";
+const DATA = __DATA__;
+const IMG = __IMG__;
+
+const TASKS = { EPM: "情节记忆", ASI: "动作顺序", HLD: "幻觉检测", OCR: "文字识别", ACR: "动作识别",
+  ATR: "属性识别", STU: "空间理解", FPD: "未来预测", OJR: "物体识别" };
+
+const STORY = {
+  "EPM:173": { kind: "past", tag: "过去 · 答对", title: "我把什么放进了购物车？",
+    hl: /pomegranates?|fruits?|plastic bag/gi,
+    text: "只看最后 4 帧，SimpleStream 答 “a bag of onions”（p = 0.95）。门控给这道题打了 +8.25，远高于阈值，于是 ReadPast 去读时间线：第一条记录了在水果区把一个石榴装进透明塑料袋。答案变成 “a bag of fruits”（0.96）。" },
+  "ASI:562": { kind: "past", tag: "过去 · 答对", title: "捶肉之前做了什么？",
+    hl: /slicing[^.]*?strips|cut into the meat|pound/gi,
+    text: "第 120 秒的当前画面里是砧板上的肉锤，SimpleStream 选了 “sprinkle salt and pepper on top of the meat”（p = 0.999）。真正发生在捶肉之前的步骤早已写进时间线：64–80 秒那条描述了把猪肉切成细条。门控 +14.75，读时间线，答 “cut the pork into slices”（0.96）。" },
+  "ASI:568": { kind: "past", tag: "过去 · 校准", title: "校准打开了时间线",
+    hl: /potatoes|milk/gi,
+    text: "这道题的门控 log-odds 是 −3.25。如果用固定的 p = 0.5 阈值（即 log-odds 0），它会被判为“现在”，时间线不会被打开。ReadPast 用三个无内容输入（“N/A”、“”、“[MASK]”）定阈值，在 Qwen3-VL-8B 上落在 −10.1，所以这道题被判为“过去”。读了 14 条时间线后，模型答 “mash the potatoes with a masher”（0.998）；SimpleStream 答的是 “add salt pepper and flour to the onions”（1.0）。" },
+  "OCR:1359": { kind: "now", tag: "现在 · 保住", title: "读标签要看当下",
+    lure: /distilled water/gi,
+    text: "四条时间线都提到 “distilled water”。总是读时间线的模型被这段文字带偏，答 “Distilled Water H2O”（p = 0.999）。门控给这道题打了 −25.5，远低于阈值，于是 ReadPast 不打开时间线，直接看当前画面里的容量瓶：“EM 100”（1.0）。" },
+  "ATR:1030": { kind: "now", tag: "现在 · 保住", title: "灯已经变了",
+    lure: /red to green|green traffic light/gi,
+    text: "时间线记得车在 80–112 秒时绿灯通过路口。第 163 秒的问题问的是现在能看到的灯，此时是黄灯。总是读时间线会把答案拉向 “green”（p = 0.995）。门控（−30.0）选择用当前画面回答：“yellow”（0.91）。" },
+  "EPM:253": { kind: "miss", tag: "失败 · 门控漏判", title: "现在时的问法骗过了门控",
+    hl: /wreath/gi,
+    text: "“Where is the wreath?” 用的是现在时，只看问题文字，门控给了 −18.25，判为“现在”。可提问时（第 62 秒）镜头已经在浴室里，花环只出现在 16–32 秒那条时间线中：前门上挂着花环。总是读时间线答 “Hanging on the front door.”（p = 1.0）；ReadPast 只看最后 4 帧，和 SimpleStream 一样答 “Inside the bathroom.”（0.77）。这是门控最常见的错法：在被判为“现在”的 234 道 Backward 题里，门控比总是读多答对 12 题、多答错 17 题；答错的 17 题中有 12 题是 OpenEQA 房屋导览里这种现在时问法的记忆题。" },
+  "EPM:82": { kind: "miss", tag: "失败 · 没写下", title: "答案从没被写下来",
+    hl: /wok|frying pan|chopsticks|white plate/gi,
+    text: "门控判断正确（+27.0，过去），但四条时间线都没有提到瓶子：字幕写的是炒锅、筷子和肉。没有可读的证据，两种方法都答 “on the counter”。这是目前最主要的失败类型：我们的字幕覆盖检查显示，约 40% 的记忆题在时间线里完全没有答案信息。" },
+};
+
+const ROUTER_PROMPT = "You are watching a live video stream. At the current moment someone asks a question about it.\nQuestion: {question}\nTo answer it, do you need to remember what happened earlier in the stream, or is what is visible right now enough? Reply with one word: past or now.";
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const mmss = (s) => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+const img = (ex, kind, t) => IMG[`${ex.task}_${ex.id}_${kind}_${Number(t)}.jpg`] || "";
+const argmax = (p) => p.reduce((b, v, i) => (v > p[b] ? i : b), 0);
+const L = (i) => String.fromCharCode(65 + i);
+const source = (v) => ({ "Ego4D": "Ego4D", "youcook2": "YouCook2", "cross_task": "CrossTask", "AutoEvalMetaData": "OVO-Bench 网络视频", "hirest": "HiREST", "COIN": "COIN", "OpenEQA": "OpenEQA 房屋导览" }[v.split("/")[0]] || v.split("/")[0]);
+const signed = (v, n) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(n);
+
+let cur = 0, t = 0, raf = null, shown = -1;
+
+function highlight(text, st) {
+  let h = esc(text);
+  if (st.hl) h = h.replace(st.hl, (m) => `<mark class="ev">${m}</mark>`);
+  if (st.lure) h = h.replace(st.lure, (m) => `<mark class="lure">${m}</mark>`);
+  return h;
+}
+
+function renderScores() {
+  const s = DATA.summary, ref = s.simplestream;
+  const d = (v, r) => { const x = v - r; const c = Math.abs(x) < 0.005 ? "" : x > 0 ? "up" : "dn"; return `<span class="d ${c}">${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}</span>`; };
+  const row = (cls, dot, name, v, reads, delta) => `<tr class="${cls}"><td><span class="who-dot ${dot}"></span>${name}</td>` +
+    `<td>${v.avg.toFixed(2)}${delta ? d(v.avg, ref.avg) : ""}</td><td>${v.bt.toFixed(2)}${delta ? d(v.bt, ref.bt) : ""}</td>` +
+    `<td>${v.rt.toFixed(2)}${delta ? d(v.rt, ref.rt) : ""}</td><td>${reads}</td></tr>`;
+  $("score-body").innerHTML =
+    row("", "dot-base", "SimpleStream（最后 4 帧）", ref, "从不", false) +
+    row("", "dot-mem", "总是读时间线", s.always, "总是", true) +
+    row("ours", "dot-ours", "ReadPast（门控）", s.readpast, `Backward 题 ${s.read_bt}% · Real-time 题 ${s.read_rt}%`, true);
+}
+
+function renderRail() {
+  $("rail").innerHTML = DATA.examples.map((ex, i) => {
+    const st = STORY[ex.key];
+    return `<button class="ex-btn" type="button" id="ex-${i}" aria-pressed="${i === cur}" data-i="${i}">` +
+      `<span class="row"><span class="kind ${st.kind}">${st.tag}</span><span class="code">${ex.key}</span></span>` +
+      `<span class="q">${esc(st.title)}</span></button>`;
+  }).join("");
+  $("rail").querySelectorAll(".ex-btn").forEach((b) => b.addEventListener("click", () => select(+b.dataset.i)));
+}
+
+function gateSVG(ex) {
+  const lo = Math.max(-34, Math.min(29, ex.lo)), cut = DATA.summary.lo_cf;
+  const X = (v) => 20 + (v + 35) / 65 * 480;
+  const y0 = 40, h = 26;
+  let s = `<rect class="zone-now" x="${X(-35)}" y="${y0}" width="${X(cut) - X(-35)}" height="${h}" rx="4"/>` +
+    `<rect class="zone-past" x="${X(cut)}" y="${y0}" width="${X(30) - X(cut)}" height="${h}" rx="4"/>` +
+    `<text class="zl now" x="${X(-35)}" y="${y0 - 6}">用当前画面回答</text>` +
+    `<text class="zl past" x="${X(30)}" y="${y0 - 6}" text-anchor="end">读时间线</text>`;
+  for (let v = -30; v <= 30; v += 10) s += `<line class="ax" x1="${X(v)}" x2="${X(v)}" y1="${y0 + h}" y2="${y0 + h + 5}"/><text class="tk" x="${X(v)}" y="${y0 + h + 18}" text-anchor="middle">${v > 0 ? "+" + v : v === 0 ? "0" : "−" + -v}</text>`;
+  s += `<line class="th0" x1="${X(0)}" x2="${X(0)}" y1="${y0 - 6}" y2="${y0 + h + 4}"/><text class="thl0" x="${X(0) + 4}" y="${y0 - 8}">固定 p=0.5</text>`;
+  s += `<line class="th" x1="${X(cut)}" x2="${X(cut)}" y1="${y0 - 22}" y2="${y0 + h + 4}"/><text class="thl" x="${X(cut) - 4}" y="${y0 - 24}" text-anchor="end">校准阈值 ${signed(cut, 1)}</text>`;
+  const lx = X(lo), anchor = lx > 420 ? "end" : lx < 90 ? "start" : "middle";
+  s += `<circle class="mk" cx="${lx}" cy="${y0 + h / 2}" r="7"/><text class="mkl" x="${lx}" y="${y0 + h + 34}" text-anchor="${anchor}">本题 ${signed(ex.lo, 2)}</text>`;
+  s += `<text class="tk" x="${X(30)}" y="12" text-anchor="end">log P(past) − log P(now)</text>`;
+  return s;
+}
+
+function select(i) {
+  cur = i; stop();
+  document.querySelectorAll(".ex-btn").forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.i === i)));
+  const ex = DATA.examples[i], st = STORY[ex.key];
+  $("ex-label").textContent = `${ex.key} · ${TASKS[ex.task] || ex.task} · ${source(ex.video)}`;
+  $("ex-title").textContent = st.title;
+  $("ex-sub").textContent = `问题在视频第 ${mmss(ex.query_ts)} 提出 · 此时时间线共 ${ex.timeline.length} 条`;
+  $("scrub").max = ex.query_ts;
+  const segW = 16 / ex.query_ts * 100;
+  $("segs").innerHTML = ex.timeline.map(() => `<span class="seg" style="width:calc(${segW}% - 2px)"></span>`).join("");
+  $("timeline").innerHTML = "";
+  shown = -1;
+  $("qcard").innerHTML = `<span class="at">提问时刻 ${mmss(ex.query_ts)}</span>${esc(ex.question)}`;
+  $("gate-svg").innerHTML = gateSVG(ex);
+  $("verdict").innerHTML = ex.gate_past
+    ? `<span class="chip past">过去</span><span>读时间线，并结合最后 4 帧回答。</span>`
+    : `<span class="chip now">现在</span><span>不打开时间线，只用最后 4 帧回答，与 SimpleStream 相同。</span>`;
+  $("prompt").textContent = ROUTER_PROMPT.replace("{question}", ex.question);
+  const sys = [["SimpleStream", "base", ex.ss.p], ["总是读", "mem", ex.always.p], ["ReadPast", "ours", ex.ours.p]];
+  $("verdicts").innerHTML = sys.map(([n, c, p]) => { const k = argmax(p), ok = k === ex.gt;
+    return `<span class="v"><span class="who-dot dot-${c}"></span>${n}：<b>${L(k)}</b> <span class="${ok ? "ok" : "no"}">${ok ? "✓ 对" : "✗ 错"}</span></span>`; }).join("");
+  $("opts").innerHTML = ex.options.map((o, j) => `<div class="opt${j === ex.gt ? " gt" : ""}">` +
+    `<div class="opt-head"><span class="L">${L(j)}</span><span>${esc(o)}</span>${j === ex.gt ? '<span class="gtb">正确答案</span>' : ""}</div>` +
+    `<div class="bars">${sys.map(([n, c, p]) => `<span class="who">${n}</span><span class="tr"><span class="fl ${c}" style="width:${(p[j] * 100).toFixed(1)}%"></span></span><span class="val">${p[j].toFixed(2)}</span>`).join("")}</div></div>`).join("");
+  $("story").textContent = st.text;
+  $("wait-text").textContent = `问题在 ${mmss(ex.query_ts)} 到达`;
+  update(ex.query_ts, false);
+}
+
+function update(nt, live) {
+  const ex = DATA.examples[cur], st = STORY[ex.key];
+  t = Math.max(0, Math.min(ex.query_ts, nt));
+  const atQ = t >= ex.query_ts - 0.01;
+  $("scrub").value = t;
+  $("head").style.left = (t / ex.query_ts * 100) + "%";
+  $("time").textContent = `${mmss(t)} / ${mmss(ex.query_ts)}`;
+  const written = ex.timeline.filter((c) => c.t1 <= t + 1e-6).length;
+  $("segs").querySelectorAll(".seg").forEach((s, j) => s.classList.toggle("on", j < written));
+  if (atQ) {
+    $("live").innerHTML = `<div class="grid4">${ex.recent.map((rt) => `<figure><img src="${img(ex, "now", rt)}" alt="第 ${mmss(rt)} 的画面"><figcaption>${mmss(rt)}</figcaption></figure>`).join("")}</div>`;
+    $("live-label").textContent = "提问时刻";
+    $("live-note").textContent = "按 1 fps 取的最后 4 帧。这是 SimpleStream 能看到的全部，也是门控判为“现在”时 ReadPast 看到的全部。";
+  } else {
+    const j = Math.min(Math.floor(t / 16), ex.thumbs.length - 1);
+    const src = t > ex.timeline[ex.timeline.length - 1].t1 ? img(ex, "now", ex.recent[0]) : img(ex, "tl", ex.thumbs[j]);
+    $("live").innerHTML = `<img class="single" src="${src}" alt="第 ${mmss(t)} 的画面"><span class="stamp">${mmss(t)}</span>`;
+    $("live-label").textContent = "播放中";
+    $("live-note").textContent = "画面看过即丢弃，只保留右边的文字。";
+  }
+  if (written !== shown) {
+    const ol = $("timeline");
+    const items = ex.timeline.slice(0, written).map((c, j) => `<li class="entry${live && j >= shown && shown >= 0 ? " fresh" : ""}">` +
+      `<img src="${img(ex, "tl", ex.thumbs[j])}" alt="">` +
+      `<div><div class="ts">[${c.t0}s–${c.t1}s]</div><div class="tx">${highlight(c.text, st)}</div></div></li>`);
+    const nextT0 = written * 16;
+    if (!atQ && nextT0 < ex.query_ts) items.push(`<li class="entry pending">[${nextT0}s–${Math.min(nextT0 + 16, Math.round(ex.query_ts))}s] 观看中…</li>`);
+    if (!written && atQ) items.push(`<li class="empty">还没有条目。</li>`);
+    ol.innerHTML = items.join("");
+    if (live) ol.scrollTop = ol.scrollHeight;
+    shown = written;
+  }
+  $("tl-count").textContent = `${written} 条`;
+  $("after").classList.toggle("waiting", !atQ);
+}
+
+function stop() { if (raf) cancelAnimationFrame(raf); raf = null; $("play").textContent = "回放视频流"; }
+
+function play() {
+  if (raf) { stop(); return; }
+  const ex = DATA.examples[cur];
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { update(ex.query_ts, false); return; }
+  const dur = Math.min(14, Math.max(5, ex.query_ts / 16 * 1.1)) * 1000;
+  const start = t >= ex.query_ts - 0.01 ? 0 : t;
+  shown = -1; $("timeline").innerHTML = "";
+  const t0 = performance.now() - start / ex.query_ts * dur;
+  $("play").textContent = "暂停";
+  const step = (now) => {
+    const nt = (now - t0) / dur * ex.query_ts;
+    update(nt, true);
+    if (nt >= ex.query_ts) { stop(); return; }
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+}
+
+$("play").addEventListener("click", play);
+$("jump").addEventListener("click", () => { stop(); update(DATA.examples[cur].query_ts, false); });
+$("scrub").addEventListener("input", (e) => { stop(); update(+e.target.value, false); });
+
+renderScores();
+renderRail();
+select(0);
+</script>

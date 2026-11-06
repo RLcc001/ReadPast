@@ -4,6 +4,7 @@ Each source video is captioned once from its longest chunk (the question with th
 `realtime`), so a question at time T may use every caption whose clip ends at or before T.
 Only full clips are captioned. Output per video: {out_dir}/{video with '/' -> '__'}.json
 With --bench sb, the StreamingBench Real-Time videos are captioned up to their latest question time stamp.
+With --bench ovo_fw, the OVO Forward videos (--fw_tasks) are captioned from the chunk of their latest probe.
   {"video", "chunk", "fps", "duration", "seg", "captions": [{"t0", "t1", "text"}, ...]}
 
 Modes:
@@ -34,7 +35,7 @@ from eval_ovo_kfs import KFSModel, is_no_change, to_pil  # noqa: E402
 
 import decord  # noqa: E402
 import torch  # noqa: E402
-from ovo_constants import BACKWARD_TASKS, REAL_TIME_TASKS  # noqa: E402
+from ovo_constants import BACKWARD_TASKS, FORWARD_TASKS, REAL_TIME_TASKS  # noqa: E402
 from qwen_vl_utils.vision_process import smart_resize  # noqa: E402
 from torchvision.transforms import InterpolationMode  # noqa: E402
 from torchvision.transforms import functional as TF  # noqa: E402
@@ -71,7 +72,8 @@ def main() -> None:
     ap.add_argument("--model_path", default="Qwen/Qwen2.5-VL-7B-Instruct")
     ap.add_argument("--anno_path", default="/workspace/datasets/streaming/ovo_bench/ovo_bench_new.json")
     ap.add_argument("--chunked_dir", default="/workspace/datasets/streaming/ovo_bench/chunked_videos")
-    ap.add_argument("--bench", choices=["ovo", "sb"], default="ovo")
+    ap.add_argument("--bench", choices=["ovo", "sb", "ovo_fw"], default="ovo")
+    ap.add_argument("--fw_tasks", default="SSR,CRR", help="--bench ovo_fw: forward tasks whose videos are captioned")
     ap.add_argument("--sb_anno", default="/workspace/datasets/streaming/streamingbench/questions_real.json")
     ap.add_argument("--sb_video_dir", default="/workspace/datasets/streaming/streamingbench/videos")
     ap.add_argument("--out_dir", default=None, help="default /workspace/streamkv/cache/captions_q25_s{seg}[_delta][_sb]")
@@ -85,8 +87,9 @@ def main() -> None:
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshard", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="first N videos of this shard (smoke tests)")
+    ap.add_argument("--videos", default="", help="comma-separated source videos to keep (smoke tests)")
     args = ap.parse_args()
-    suffix = ("" if args.mode == "plain" else f"_{args.mode}") + ("_sb" if args.bench == "sb" else "")
+    suffix = ("" if args.mode == "plain" else f"_{args.mode}") + {"sb": "_sb", "ovo_fw": "_fw"}.get(args.bench, "")
     out_dir = args.out_dir or f"/workspace/streamkv/cache/captions_q25_s{args.seg}{suffix}"
     os.makedirs(out_dir, exist_ok=True)
 
@@ -95,6 +98,15 @@ def main() -> None:
         for e in json.load(open(args.sb_anno)):
             ts = max(sum(int(x) * 60 ** i for i, x in enumerate(reversed(q["time_stamp"].split(":")))) for q in e["questions"])
             longest[e["video_path"]] = {"path": os.path.join(args.sb_video_dir, e["video_path"]), "realtime": ts}
+    elif args.bench == "ovo_fw":
+        fw = set(args.fw_tasks.split(","))
+        assert fw <= set(FORWARD_TASKS), fw
+        for a in json.load(open(args.anno_path)):
+            if a["task"] not in fw:
+                continue
+            for i, p in enumerate(a["test_info"]):
+                if a["video"] not in longest or p["realtime"] > longest[a["video"]]["realtime"]:
+                    longest[a["video"]] = {"path": os.path.join(args.chunked_dir, f"{a['id']}_{i}.mp4"), "realtime": p["realtime"]}
     else:
         for a in json.load(open(args.anno_path)):
             if a["task"] in BACKWARD_TASKS + REAL_TIME_TASKS and (a["video"] not in longest or a["realtime"] > longest[a["video"]]["realtime"]):
@@ -102,6 +114,8 @@ def main() -> None:
     # longest first, round-robin over shards so shards get similar total duration
     if args.max_realtime:
         longest = {v: x for v, x in longest.items() if x["realtime"] <= args.max_realtime}
+    if args.videos:
+        longest = {v: x for v, x in longest.items() if v in set(args.videos.split(","))}
     videos = sorted(longest, key=lambda v: -longest[v]["realtime"])[args.shard::args.nshard]
     if args.limit:
         videos = videos[: args.limit]

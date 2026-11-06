@@ -36,7 +36,12 @@
 % Instruction text from D-HSM \cite{dhsm}: choose a content option only when evidence supports it, otherwise the
 % abstention option. Applied iff O contains an abstention option (e.g., "Unable to answer"); otherwise prompt unchanged.
 % Rationale: on questions without such an option the instruction only adds a prior toward refusing / changes answers.
-\todo{instruction, trigger rule, rationale.}
+% REN 11-05: keep this subsection SHORT (a few sentences). Framing: any text memory gives the model plausible-looking
+% context, so it tends to commit to a content option instead of using the abstention option the interface offers
+% (inherent to text memory). When the interface provides an abstention option, we remind the model that it may use it.
+% The instruction text is from D-HSM \cite{dhsm}; our only change is triggering it conditionally on the options.
+% No extra analysis of the abstention questions here (ablation vs. uniform use stays in Sec. IV-D).
+\todo{instruction, trigger rule, rationale (brief).}
 
 \subsection{Cost}
 \label{sec:method-cost}

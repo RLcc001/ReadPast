@@ -1,0 +1,690 @@
+{
+ "summary": {
+  "n": 1468,
+  "simplestream": {
+   "avg": 67.66,
+   "bt": 53.97,
+   "rt": 81.36
+  },
+  "always": {
+   "avg": 72.95,
+   "bt": 65.35,
+   "rt": 80.54
+  },
+  "readpast": {
+   "avg": 73.34,
+   "bt": 65.03,
+   "rt": 81.65
+  },
+  "read_bt": 62.9,
+  "read_rt": 6.0,
+  "lo_cf": -10.1
+ },
+ "examples": [
+  {
+   "key": "EPM:173",
+   "task": "EPM",
+   "id": 173,
+   "video": "Ego4D/clips/a99baf07-ce1c-4f73-ab20-ed0dfc079510.mp4",
+   "query_ts": 60.97,
+   "question": "What did i put in the trolley?",
+   "options": [
+    "a bag of onions",
+    "a bag of potatoes",
+    "a bag of fruits",
+    "a bag of vegetables"
+   ],
+   "gt": 2,
+   "lo": 8.25,
+   "gate_past": true,
+   "special": false,
+   "ss": {
+    "p": [
+     0.9496,
+     0.0005,
+     0.0473,
+     0.0027
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "always": {
+    "p": [
+     0.0373,
+     0.0001,
+     0.961,
+     0.0016
+    ],
+    "pick": "C",
+    "ok": 1
+   },
+   "ours": {
+    "p": [
+     0.0373,
+     0.0001,
+     0.961,
+     0.0016
+    ],
+    "ok": 1
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The video shows a person shopping in the produce section of a brightly lit supermarket. They are seen selecting and placing a pomegranate into a clear plastic bag. Price tags for various fruits, including \"¥10\" and \"¥6.9\", are visible on the shelves, which are stocked with pomegranates, papayas, mangos, apples, and pineapples."
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "The video clip shows a person shopping in a well-lit grocery store's produce section. The individual, seen from behind, walks along multiple shelves filled with various fruits like pomegranates, papayas, pineapples, and apples, occasionally reaching out to inspect or pick up items. Price tags are visible on the shelves, with some showing prices like \"15\" and \"10\". The camera pans across the aisles, capturing the wide variety of produce before"
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "The clip shows a person browsing a well-stocked, curved produce aisle in a supermarket, focusing on various fruits like apples, lemons, avocados, and kiwis. The person, wearing a light blue shirt and patterned pants, reaches out to select items from the shelves. The camera pans across the aisle, revealing more produce and a large promotional sign for \"Orange\" in the background. The shelves are filled with fresh fruits and vegetables, and packaged goods are visible"
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0
+   ],
+   "recent": [
+    57,
+    58,
+    59,
+    60
+   ]
+  },
+  {
+   "key": "ASI:562",
+   "task": "ASI",
+   "id": 562,
+   "video": "youcook2/E9O9-6TQUw0.mp4",
+   "query_ts": 119.96,
+   "question": "What does the person do before cover the pork in plastic wrap and pound",
+   "options": [
+    "cut the pork into slices",
+    "mix eggs milk salt and pepper together",
+    "melt butter in the pan",
+    "sprinkle salt and pepper on top of the meat"
+   ],
+   "gt": 0,
+   "lo": 14.75,
+   "gate_past": true,
+   "special": false,
+   "ss": {
+    "p": [
+     0.0004,
+     0.0007,
+     0.0,
+     0.9989
+    ],
+    "pick": "D",
+    "ok": 0
+   },
+   "always": {
+    "p": [
+     0.9624,
+     0.0003,
+     0.0,
+     0.0373
+    ],
+    "pick": "A",
+    "ok": 1
+   },
+   "ours": {
+    "p": [
+     0.9624,
+     0.0003,
+     0.0,
+     0.0373
+    ],
+    "ok": 1
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The video begins with a stylized logo featuring a house outline and the text \"Little Gasthasthaus\" and \"Make your own.\" It then transitions to scenes of outdoor grilling, showing a large steak being seared on a grill with flames, and a person in a plaid shirt tending to a large, cylindrical smoker. The clip concludes with a man in a kitchen, standing in front of shelves displaying license plates and automotive memorabilia, speaking to the camera while"
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "In a kitchen decorated with automotive and Route 66 memorabilia, a man in a plaid shirt speaks to the camera. The clip cuts to a close-up of several golden-brown, breaded and fried meat cutlets on a plate. It then returns to the man speaking, followed by a shot of a large, raw, bone-in pork shoulder roast on a white cutting board."
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "A man with a mustache, wearing a plaid shirt, stands in a kitchen decorated with Route 66 and state license plates. He speaks directly to the camera. The scene then cuts to a close-up of ingredients for a recipe laid out on a wooden counter: two eggs, two tablespoons of milk, breadcrumbs, salt, and a large pepper grinder, with a raw pork roast on a cutting board. The man is then shown using a knife to cut into the pork"
+    },
+    {
+     "t0": 48,
+     "t1": 64,
+     "text": "A person is preparing a large piece of raw meat on a white cutting board placed on a wooden countertop. They use a knife to cut into the meat, making a single incision. The video includes on-screen text overlays listing ingredients: \"2 Eggs,\" \"2 Tbs Milk,\" \"Breadcrumbs,\" and \"Salt.\""
+    },
+    {
+     "t0": 64,
+     "t1": 80,
+     "text": "A person is slicing a large, raw piece of meat, likely pork, into thin strips on a white plastic cutting board placed on a wooden countertop. The person uses a knife to cut the meat, and the slices are gathered together on the board. A small white bowl containing a light-colored granular substance, possibly salt or flour, is visible in the bottom left corner of the frame."
+    },
+    {
+     "t0": 80,
+     "t1": 96,
+     "text": "A person is preparing raw meat on a white plastic cutting board placed on a wooden countertop. They are handling and arranging several pieces of raw, red meat, which appear to be pork loin or similar cuts. The person picks up individual pieces, examines them, and places them back on the board, eventually leaving only one piece remaining. A small white bowl containing a white granular substance, likely salt or flour, is visible in the bottom right corner. The person's hands are"
+    },
+    {
+     "t0": 96,
+     "t1": 112,
+     "text": "A person uses a grey meat mallet to pound a single, raw piece of meat resting on a white plastic cutting board. The action takes place on a wooden countertop, with a small white bowl and a white plate visible nearby."
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0,
+    56.0,
+    72.0,
+    88.0,
+    104.0
+   ],
+   "recent": [
+    116,
+    117,
+    118,
+    119
+   ]
+  },
+  {
+   "key": "ASI:568",
+   "task": "ASI",
+   "id": 568,
+   "video": "youcook2/T_fPNAK5Ecg.mp4",
+   "query_ts": 224.97,
+   "question": "What does the person do after add milk to the onions and stir",
+   "options": [
+    "add salt pepper and flour to the onions",
+    "add butter and onions to the pan",
+    "mash the potatoes with a masher"
+   ],
+   "gt": 2,
+   "lo": -3.25,
+   "gate_past": true,
+   "special": false,
+   "ss": {
+    "p": [
+     0.9998,
+     0.0002,
+     0.0
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "always": {
+    "p": [
+     0.0019,
+     0.0005,
+     0.9976
+    ],
+    "pick": "C",
+    "ok": 1
+   },
+   "ours": {
+    "p": [
+     0.0019,
+     0.0005,
+     0.9976
+    ],
+    "ok": 1
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The clip shows a woman in a kitchen, standing in front of a stove where a pot of potatoes is boiling. She is wearing a white t-shirt with a pizza graphic. The video begins with a title card that repeatedly displays the text \"The Once A Week Kitchen\" and \"How To Cook Bangers & Mash wi' Onion Sauce,\" indicating the video is a cooking tutorial. The woman appears to be speaking to the camera, likely introducing the recipe."
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "A person wearing a white apron with the text \"The Cookbook\" is standing at a stovetop, holding a large stainless steel pot filled with water and chopped white root vegetables, likely potatoes or turnips. They repeatedly gesture with their right hand over the pot, possibly to check the water temperature or the doneness of the vegetables, while their left hand holds the pot's handle. The scene is set in a kitchen, and the pot is positioned on a gas stove"
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "A person wearing a white apron with the text \"The Cookbook\" is cooking in a kitchen. They first hold a pot of water boiling with white, round food items, likely potatoes or daikon radish. Then, they place a black frying pan containing several raw sausages onto a gas stovetop burner and turn the knob to ignite the flame, beginning to cook the sausages."
+    },
+    {
+     "t0": 48,
+     "t1": 64,
+     "text": "A person wearing a white apron with \"The Taco & Wine Cookbook\" printed on it is cooking sausages in a black frying pan on a gas stovetop. They use their hands to arrange the sausages in the pan, then turn off the burner. The scene then cuts to a countertop where the same person is arranging small bowls containing chopped onions, salt, and butter."
+    },
+    {
+     "t0": 64,
+     "t1": 80,
+     "text": "A person wearing a white apron with \"The Cook & Book\" printed on it stands at a kitchen counter, preparing to cook. They pick up a small bowl containing two pats of butter and place them into a dark, empty saucepan. The counter is organized with other ingredients: a large bowl of chopped onions, a small bowl of salt, a small bowl of flour, and a small bowl of black pepper, all arranged on a green cutting mat."
+    },
+    {
+     "t0": 80,
+     "t1": 96,
+     "text": "A person wearing a white apron with \"The Cake & Pie Cookbook\" printed on it is preparing ingredients on a green cutting board. They are shown holding a small bowl of what appears to be salt or pepper, and the scene includes a large bowl of chopped onions, a bowl of flour, and a small bowl of black pepper. The person is standing at a kitchen counter, and in the first frame, they are holding a frying pan with two pats of butter melting in"
+    },
+    {
+     "t0": 96,
+     "t1": 112,
+     "text": "A person wearing a white t-shirt with \"The Oven & Table Cookbook\" printed on it is preparing food at a kitchen counter. They are working with several bowls on a green cutting board: a large bowl of chopped white onions, a small bowl of white powder (likely salt or flour), and a small bowl of black pepper. The person picks up a blue carton of milk and places it down, then uses a utensil to stir the chopped onions in the large bowl."
+    },
+    {
+     "t0": 112,
+     "t1": 128,
+     "text": "A person wearing a white apron stands at a kitchen counter, preparing ingredients. In front of them on a green cutting board are three small bowls: one with chopped white onions, one with white powder (likely salt or flour), and one with dark ground pepper. A blue carton, possibly milk or cream, sits nearby. The person gestures with their hands around the bowls, appearing to explain or present the ingredients, and at one point, their right hand moves toward the pepper"
+    },
+    {
+     "t0": 128,
+     "t1": 144,
+     "text": "A person wearing a white apron with \"The Grace & White Cookbook\" printed on it stands at a kitchen counter, preparing ingredients. In front of them on a green cutting board are three small bowls: one with chopped white onions, one with white powder (likely salt or flour), and one with dark specks (likely pepper). The person uses both hands to lift and slightly rotate the large bowl of chopped onions, then places it back down. A blue carton is visible"
+    },
+    {
+     "t0": 144,
+     "t1": 160,
+     "text": "In a kitchen, a person is cooking, first adding seasonings from small bowls to a pot of onions on a stovetop, then stirring the mixture with a wooden spoon. Simultaneously, sausages are cooking in a separate pan on the adjacent burner. A white bag with the text \"Taste & Try Cookbook\" is visible near the stove."
+    },
+    {
+     "t0": 160,
+     "t1": 176,
+     "text": "In a kitchen, a person is cooking, stirring chopped onions in a small pan on a stovetop while simultaneously managing several sausages cooking in a larger pan. The person uses a wooden spoon to stir the onions and later uses a white container to add an ingredient to the pan. A white apron with the text \"The Cook's Cookbook\" is visible on the person's torso."
+    },
+    {
+     "t0": 176,
+     "t1": 192,
+     "text": "In a kitchen, a person is cooking on a stovetop, adding flour from a white bowl into a pan containing sautéed onions or garlic, then stirring the mixture with a wooden spoon. In the background, another pan holds sausages cooking on a separate burner. The person’s hands and arms are visible as they work, and the stovetop has multiple burners and knobs. No readable text is visible on any objects."
+    },
+    {
+     "t0": 192,
+     "t1": 208,
+     "text": "A person is cooking on a stainless steel stovetop, stirring chopped onions in a frying pan with a wooden spoon. In the background, a second pan holds a row of uncooked sausages. The person is wearing a light-colored apron with some faint, unreadable text on it. The camera angle is from above, looking down at the cooking area."
+    },
+    {
+     "t0": 208,
+     "t1": 224,
+     "text": "A person is cooking on a stainless steel stovetop, stirring a pan of chopped meat with a wooden spatula while sausages cook in a separate pan. The person then reaches for a blue container, likely to add an ingredient to the meat. The person is wearing a white apron with a faint, unreadable green logo."
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0,
+    56.0,
+    72.0,
+    88.0,
+    104.0,
+    120.0,
+    136.0,
+    152.0,
+    168.0,
+    184.0,
+    200.0,
+    216.0
+   ],
+   "recent": [
+    221,
+    222,
+    223,
+    224
+   ]
+  },
+  {
+   "key": "OCR:1359",
+   "task": "OCR",
+   "id": 1359,
+   "video": "AutoEvalMetaData/272.mp4",
+   "query_ts": 78.97,
+   "question": "What does the label on the bottle?",
+   "options": [
+    "EM 400",
+    "Distilled Water H2O",
+    "Demi Water",
+    "EM 100"
+   ],
+   "gt": 3,
+   "lo": -25.5,
+   "gate_past": false,
+   "special": false,
+   "ss": {
+    "p": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "pick": "D",
+    "ok": 1
+   },
+   "always": {
+    "p": [
+     0.0,
+     0.9994,
+     0.0,
+     0.0006
+    ],
+    "pick": "B",
+    "ok": 0
+   },
+   "ours": {
+    "p": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "ok": 1
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The video clip shows a static laboratory setup on a white table, featuring a bottle of distilled water, a glass beaker, a conical flask, and a small dish with a blue substance. The University of Groningen logo is visible in the top-left corner of the frame throughout the clip. No people are visible, and no objects are handled or moved during the 16-second duration."
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "In a laboratory setting, a person wearing a white lab coat prepares to perform a chemical procedure. They are shown handling a small, white, oval dish containing a blue crystalline substance, which they intend to add to a beaker of distilled water. The setup includes a bottle of distilled water, a graduated cylinder, a conical flask, and a funnel, all arranged on a white lab bench. The bottle is labeled \"Distilled Water\" and \"H2O\"."
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "The clip shows a static laboratory setup on a white table. Visible are a large bottle of distilled water, a glass beaker containing water, a glass funnel, and a small white dish holding a small amount of blue crystalline substance. The camera remains fixed throughout the 8 frames, with no people or objects being moved or handled. The text \"Distilled Water\" is clearly visible on the bottle."
+    },
+    {
+     "t0": 48,
+     "t1": 64,
+     "text": "In a laboratory setting, a person's hand is shown handling a 100 mL volumetric flask. The hand first picks up a small white dish containing a blue crystalline substance, then places the dish down. The hand then picks up the volumetric flask and begins to pour distilled water from a large bottle into it, preparing to dissolve the substance. The bottle is labeled \"Distilled Water\" and the flask has \"EM 100 ml\" printed on it"
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0,
+    56.0
+   ],
+   "recent": [
+    75,
+    76,
+    77,
+    78
+   ]
+  },
+  {
+   "key": "ATR:1030",
+   "task": "ATR",
+   "id": 1030,
+   "video": "AutoEvalMetaData/60.mp4",
+   "query_ts": 162.97,
+   "question": "What type of traffic light is visible in the scene?",
+   "options": [
+    "There is a green traffic light illuminated.",
+    "There is a yellow traffic light illuminated.",
+    "There is a blinking amber traffic light.",
+    "There is no traffic light visible."
+   ],
+   "gt": 1,
+   "lo": -30.0,
+   "gate_past": false,
+   "special": false,
+   "ss": {
+    "p": [
+     0.0401,
+     0.913,
+     0.0115,
+     0.0354
+    ],
+    "pick": "B",
+    "ok": 1
+   },
+   "always": {
+    "p": [
+     0.9954,
+     0.0019,
+     0.0002,
+     0.0025
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "ours": {
+    "p": [
+     0.0401,
+     0.913,
+     0.0115,
+     0.0354
+    ],
+    "ok": 1
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The video shows a person driving a Tesla on a rural road on an overcast day. The driver, wearing a grey sweater and blue jeans, has their hands on the steering wheel and is actively steering the car as it moves forward. The car’s large central touchscreen displays a navigation map and a rearview camera feed. The road is lined with bare trees and houses, and the wipers are occasionally seen moving. A white van is visible ahead in the distance."
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "A person is driving a Tesla on a residential street, approaching and stopping at a stop sign before proceeding onto a wider road. The driver’s hands are on the steering wheel, and the car’s central touchscreen displays a navigation map and a rear-view camera feed. The environment is a suburban neighborhood with bare trees and houses, under an overcast sky. A red stop sign is visible at the intersection."
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "From the perspective of a passenger or driver in a Tesla, the vehicle is stationary at an intersection on an overcast day. The driver, wearing a grey sweater and blue jeans, is seated and appears to be waiting. The large central touchscreen displays a navigation map with a blue route line. Outside, a silver SUV and a white van pass by on the road ahead, and a yellow diamond-shaped road sign is visible on the right side of the road. The car remains stopped throughout"
+    },
+    {
+     "t0": 48,
+     "t1": 64,
+     "text": "From the perspective of a passenger or driver in a Tesla, the vehicle is stationary at an intersection, waiting for traffic to clear. The large central touchscreen displays a navigation map. A person wearing a beige sweater and blue jeans is seated in the driver's seat, with their hands on the steering wheel. Over the course of the clip, several other vehicles—a silver pickup truck, a dark SUV, and a white SUV—pass by in the adjacent lane or cross the intersection. The"
+    },
+    {
+     "t0": 64,
+     "t1": 80,
+     "text": "The video shows a person driving a Tesla on a rural road during the day, with the car's large central touchscreen displaying a navigation map. The driver's hands are on the steering wheel as the car moves forward, passing a yellow \"LEFT\" road sign and later approaching a traffic light at dusk, where the car comes to a stop. The environment is characterized by bare trees and open fields, and the lighting transitions from daylight to dim, artificial light as evening falls."
+    },
+    {
+     "t0": 80,
+     "t1": 96,
+     "text": "From the perspective of a driver inside a Tesla, the vehicle stops at a traffic light at dusk. The driver's hands are visible on the steering wheel. The car remains stationary as the traffic light turns from red to green. The car then proceeds through the intersection, with the navigation screen on the center console displaying a map. A \"NO TURN\" sign is visible on the right side of the road."
+    },
+    {
+     "t0": 96,
+     "t1": 112,
+     "text": "The video shows a driver operating a Tesla at dusk or early evening, navigating through a rural or suburban area. The driver’s hands are on the steering wheel, and the car’s large central touchscreen displays a navigation map. The car proceeds through an intersection with a green traffic light, then continues along a road illuminated by streetlights and the car’s headlights, passing other vehicles and roadside signs. The driver briefly interacts with the touchscreen, and the car’s headlights illuminate the road ahead as"
+    },
+    {
+     "t0": 112,
+     "t1": 128,
+     "text": "From the driver's perspective inside a Tesla, the vehicle proceeds down a residential street, passing a large white truck and a yellow construction vehicle on the right. The car continues forward, approaching a stop sign and a line of orange traffic cones marking a work zone ahead. The driver's hands are visible on the steering wheel, and the car's central touchscreen displays a navigation map. The scene is set in a suburban neighborhood with houses and bare trees under an overcast sky."
+    },
+    {
+     "t0": 128,
+     "t1": 144,
+     "text": "A person is driving a Tesla on a residential street, with their hands on the steering wheel. The car’s central touchscreen displays a navigation map. The driver navigates through the neighborhood, passing houses and trees, and comes to a stop at a stop sign before proceeding."
+    },
+    {
+     "t0": 144,
+     "t1": 160,
+     "text": "From the driver’s perspective inside a Tesla, the vehicle is stopped at a street intersection, waiting for traffic to clear. The driver’s hands are on the steering wheel, and the central touchscreen displays a navigation map. Across the street, various vehicles, including a white pickup truck and a dark SUV, are visible, moving through the intersection. The scene is set on a residential or suburban street with bare trees and houses, under an overcast sky. No readable text is visible on"
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0,
+    56.0,
+    72.0,
+    88.0,
+    104.0,
+    120.0,
+    136.0,
+    152.0
+   ],
+   "recent": [
+    159,
+    160,
+    161,
+    162
+   ]
+  },
+  {
+   "key": "EPM:253",
+   "task": "EPM",
+   "id": 253,
+   "video": "OpenEQA/025-hm3d-ziup5kvtCCR.mp4",
+   "query_ts": 62.0,
+   "question": "Where is the wreath?",
+   "options": [
+    "Inside the bathroom.",
+    "In the living room.",
+    "On the table next to the front door.",
+    "Hanging on the front door."
+   ],
+   "gt": 3,
+   "lo": -18.25,
+   "gate_past": false,
+   "special": false,
+   "ss": {
+    "p": [
+     0.7741,
+     0.0032,
+     0.0009,
+     0.2218
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "always": {
+    "p": [
+     0.0,
+     0.0,
+     0.0,
+     1.0
+    ],
+    "pick": "D",
+    "ok": 1
+   },
+   "ours": {
+    "p": [
+     0.7741,
+     0.0032,
+     0.0009,
+     0.2218
+    ],
+    "ok": 0
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "The video clip shows a static, wide-angle view of a brightly lit, modern living room with light wood floors and white walls. A large, black flat-screen TV is mounted on the wall above a distressed, white-painted media console. To the right, a light-colored, curved armchair sits near a doorway at the end of a hallway, with a decorative wall clock visible on the adjacent wall. The camera slowly pans to the right, shifting the focus from the TV and"
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "The video clip shows a slow, steady camera pan to the right, revealing a narrow hallway in a home. The camera starts near a light-colored, patterned armchair in the foreground and moves past a white, distressed console table. The pan continues to expose a white front door adorned with a wreath and a tan roman shade, and finally, a large, ornate gold-framed mirror mounted on the wall to the left of the door. No people are visible, and"
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "The video clip shows a slow, steady forward movement down a narrow, empty hallway. The camera passes a large, ornate, antique-style mirror with a dark, distressed wooden frame mounted on the right wall. The hallway has light-colored walls, light wood flooring, and white baseboards. At the end of the hallway, a doorway is visible, leading to another room with a blue rug on the floor. No people, text, or objects are handled or interacted with during"
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0
+   ],
+   "recent": [
+    59,
+    60,
+    61,
+    62
+   ]
+  },
+  {
+   "key": "EPM:82",
+   "task": "EPM",
+   "id": 82,
+   "video": "Ego4D/clips/3341648c-88b4-433a-87ac-1fcc9619a4dc.mp4",
+   "query_ts": 75.97,
+   "question": "Where was the bottle before I picked it?",
+   "options": [
+    "on the counter",
+    "on the shelf",
+    "on the slab",
+    "in the cabinet"
+   ],
+   "gt": 2,
+   "lo": 27.0,
+   "gate_past": true,
+   "special": false,
+   "ss": {
+    "p": [
+     0.9457,
+     0.0008,
+     0.0534,
+     0.0001
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "always": {
+    "p": [
+     0.9947,
+     0.0001,
+     0.0052,
+     0.0
+    ],
+    "pick": "A",
+    "ok": 0
+   },
+   "ours": {
+    "p": [
+     0.9947,
+     0.0001,
+     0.0052,
+     0.0
+    ],
+    "ok": 0
+   },
+   "timeline": [
+    {
+     "t0": 0,
+     "t1": 16,
+     "text": "From a top-down perspective, a person wearing a patterned apron is cooking meat in a black wok on a gas stovetop in a kitchen. They use red-handled chopsticks to stir and flip the meat as it cooks, while various ingredients like bean sprouts and chopped green vegetables in colanders sit on the counter nearby."
+    },
+    {
+     "t0": 16,
+     "t1": 32,
+     "text": "From a first-person perspective, a person wearing a patterned apron is cooking meat in a black frying pan on a gas stove in a kitchen. They are using red-handled chopsticks to stir and flip the meat as it cooks, while holding the pan's handle with a patterned oven mitt. Nearby on the counter are bowls containing prepared ingredients, including bean sprouts and chopped green vegetables."
+    },
+    {
+     "t0": 32,
+     "t1": 48,
+     "text": "From a first-person perspective, a person wearing a patterned grey outfit is cooking meat in a black wok on a gas stove in a kitchen. They are using red chopsticks to stir and flip the meat, which is sizzling and steaming. Nearby on the counter are a green colander with chopped green onions, a metal strainer with bean sprouts, and a bottle of soy sauce. The person holds the wok handle with a patterned cloth oven mitt."
+    },
+    {
+     "t0": 48,
+     "t1": 64,
+     "text": "From a first-person perspective, a person in a patterned apron is cooking meat in a wok on a stovetop in a kitchen. They stir the meat with chopsticks, then set the wok down, retrieve a white plate from a dish rack, and place it on the counter before returning to stir the meat again."
+    }
+   ],
+   "thumbs": [
+    8.0,
+    24.0,
+    40.0,
+    56.0
+   ],
+   "recent": [
+    72,
+    73,
+    74,
+    75
+   ]
+  }
+ ]
+}

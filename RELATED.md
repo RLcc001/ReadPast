@@ -265,3 +265,28 @@ SB-RT：Qwen3-8B SimpleStream‡ 76.5、HERMES‡ 76.6、ShallowStream 78.2（�
 | StreamOPD | 训练 | github.com/UniX-AI-Lab/StreamOPD | 有 / 有 | Qwen3.5-4B |
 | OneStreamer | 训练 | github.com/MCG-NJU/OneStreamer（权重未公开） | 有 / 有 | Qwen3-VL-4B |
 | WRWS、FOLIO、StreamScout、FlashBack、LatentStream、ReMem、FrameBlend、SPARE | — | 无 | — | — |
+
+## 补充（2026-11-05）：需要训练的方法具体怎么训（3 个子代理读 arXiv HTML 正文 + 附录；图里的数字读不到；原文抽取在 scratchpad/papers/）
+
+| 方法 | 训练什么（冻结什么） | 写记忆时看问题吗 | 监督信号 | 数据 | 算力 | 训练部分的关键消融 |
+|---|---|---|---|---|---|---|
+| OneStreamer 2610.01762 | Qwen3-VL-4B 的 LLM + 投影层全量 SFT（视觉冻结）；模型自己写带时间戳的字幕记忆 + 近 16 帧 | 不看 | 模仿老师字幕（Gemini3.1Pro / Seed2.1Pro 写，"对照视频核验"），交叉熵；无 QA 损失、无 RL | OneStreamer-1M（字幕记忆 6 万条）；QA 由 Gemini/Seed 生成、Qwen3.5-397B 核验；**剔除评测集视频（含 OVO、SB）** | 32×H200，1 epoch 1174 步 | 表 2 同一权重去掉 / 保留字幕：ASI 63.5→71.6、EPM 62.0→62.6、RT 80.9→81.4；**表 17：不用字幕数据训练、用自己提示出的字幕作记忆 −0.1（OVO）/ +0.3（SB），用字幕 SFT +2.0 / +0.6** |
+| M3-Agent 2508.09736 | 写记忆的 Qwen2.5-Omni-7B 做 SFT；控制器另做 RL | 不看 | 模仿 Gemini-1.5-Pro / GPT-4o 写的记忆（10,952 条） | — | — | 表 6：SFT 写者优于直接提示 Gemini 写 |
+| SelectStream 2606.16353 | 骨干冻结；训练潜在记忆图的写入 / 检索 / 校准模块 | 写入不看，检索看 | 答案的自回归损失端到端 + 用证据时间戳的检索损失 + 稀疏损失 | Streamo-Instruct-465K；未提去重 | 8×A100，1 epoch | 表 5（Qwen2.5）：无历史 62.31 → 完整 65.71；随机记忆 token 62.02 |
+| MaLoW 2610.22070 | 骨干冻结；超网络（198–321M）把历史写成 rank-8 LoRA | 不看 | QA 损失穿过生成的 LoRA 端到端 | 380,920 QA / 55,867 视频（Qwen3.5-122B 出题、397B 核验）；剔除 OVO 视频 | 4×H200，2800 步 | GitHub 文档（Qwen3.5-9B，Back / RT）：近 2 秒 51.2/75.5；+免训练文本摘要 59.4/78.1；MaLoW 66.4/76.2；两者都加 69.7/77.3 |
+| StreamTTT 2608.13416 | 每层加测试时训练的快权重分支（训练哪些参数未写） | 不看 | 答案损失 | 23 万 QA（LLaVA-Video、Streamo 改造等）；未提去重 | 未写 | 表 2：相对冻结的近 4 帧，ER +8.25、RT −0.61 |
+| SPARE 2610.14671 | 骨干冻结；门 = 2 层 MLP（1.06M）；LoRA r16 学弃答 | 记忆是固定的 4 秒片段嵌入 | 门：27B 模型判"近帧够不够"（两个提示一致才留）；LoRA：**173 条**样本（95 条弃答） | 1.5 万门标签；声明与 OVO/SB 视频不重合 | 1×H100 | HLD 52.69→90.32，总分增益约 62% 来自 HLD；门比"总是检索"只多 +0.59 |
+| StreamScout-S/-R 2609.00291 | LoRA r16 只学"答 / 要更多上下文"的决策 token | 提问后 | -S：自蒸馏（最浅能答对的视图标为答）；-R：GRPO，奖励 = 1[对] − 1[错] − 0.03·代价 | 1.34 万 / 7.8K 题（Video-MME、OVBench、ODV-Bench） | -S 14.5 h 1×A100；-R 约 100 GPU-h | 普通 GRPO 塌缩成"总在第一视图作答"，去掉 std 归一化（Dr.GRPO）解决；对零样本的增益 53–91% 在 HLD |
+| SVMemAgent 2609.18540 | 外部 195.6M 选帧策略（16 槽），VideoLLM 冻结 | 不看 | 冷启动伪标签 + GRPO，奖励 = 冻结 InternVL3.5-2B 对正确答案的平均 log-prob；DAAD 压掉"记忆差别大但奖励相同"的组 | Video-R1、LongVILA 子集；未提去重 | 未写 | 无 OVO/SB；Qwen3-VL-8B 平均 63.4，Reservoir 62.2，均匀 63.3；GRPO 比冷启动 +0.8 |
+| StreamOPD 2608.16320 | 学生 Qwen3.5-4B（推理只看近 4 帧，无记忆） | — | 在线策略蒸馏：9B 老师（额外看 27B 写的时空提示）的反向 KL 作优势 | 25,118 题（短片段）；未提去重 | 4+4×H200 | RT 70.6→82.6、EPM 47.1→58.9；OPD 削弱弃答（HLD 47.9→38.7） |
+| CapRL++ 2606.09393（离线） | Qwen3-VL-4B 视频描述器 RLVR | 不看（离线描述） | **奖励 = 不看画面的 LLM 只读描述答选择题的正确率** + 时间戳格式 + 长度项；题目只保留"看视频能答、不看不能答"的 | 约 2 万道 MCQ（Qwen3-VL-235B / Gemini-3-Flash 出题） | — | Prism 平均 47.5 vs 41.2 |
+
+非视频先例（已核实）：RECOMP（Xu et al., ICLR 2024，摘要器从 GPT-3.5 摘要蒸馏，只保留能提升冻结 LM 下游结果的摘要，都不帮就用空目标）；SCST（Rennie et al., CVPR 2017，CIDEr 奖励）；MemAgent（Yu et al., ICLR 2026，RL 覆写记忆，但写记忆时看问题）；MEM1（Zhou et al., ICLR 2026，PPO，非问题无关）。VideoLLM-online（Chen et al., CVPR 2024）：Ego4D 旁白流用的是原始旁白，对话数据来自 COIN / Ego4D GoalStep 的离线标注。
+
+**对"训练写入端"的启示**：
+1. 写文字记忆的监督目前只有"模仿强老师"（OneStreamer、M3-Agent）；用冻结读者的问答结果当奖励训练描述器只有离线的 CapRL++，存帧的 SVMemAgent 用的是同类奖励。**流式 + 文字记忆 + 读者奖励**这一格在这次检索范围内没找到。
+2. OneStreamer 表 17 与我们的结论一致：提示出来的字幕不涨，训练过的字幕才涨（+2.0，主要在 ASI，EPM 只 +0.6）。
+3. 数据都是大模型生成 QA（10 万–100 万级）+ 核验；OneStreamer、MaLoW、SPARE 声明剔除了 OVO / SB 视频。
+4. 两张卡能做的规模是 SPARE / StreamScout 级（1 卡，10–100 GPU-h）；OneStreamer / MaLoW 级（4–32 张 H200，几十万到百万样本）做不了。
+5. 已知的坑：GRPO 塌缩（StreamScout，Dr.GRPO 解决）、奖励带语言偏置（SVMemAgent）、蒸馏削弱弃答（StreamOPD）。
+6. 训练类方法在 OVO 上的总分增益大部分来自弃答训练（SPARE 173 条样本 HLD +38），比较时要看逐任务分数。

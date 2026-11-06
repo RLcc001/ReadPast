@@ -1,0 +1,1572 @@
+[
+{
+"id": 295,
+"task": "EPM",
+"video": "OpenEQA/018-hm3d-dHwjuKfkRUR.mp4",
+"realtime": 119,
+"question": "What is in between the two bedroom doorways?",
+"answer": "A light switch",
+"options": [
+"A light switch",
+"A painting",
+"A shelf with books",
+"A floor lamp"
+],
+"gt": 0
+},
+{
+"id": 625,
+"task": "ASI",
+"video": "star/PDRVY.mp4",
+"realtime": 24,
+"question": "What happened before the person closed the closet/cabinet?",
+"answer": "Took the bag.",
+"options": [
+"Put down the food.",
+"Threw the pillow.",
+"Threw the clothes.",
+"Took the bag."
+],
+"gt": 3
+},
+{
+"id": 1244,
+"task": "ACR",
+"video": "AutoEvalMetaData/274.mp4",
+"realtime": 188.47,
+"question": "How is the water flowing?",
+"answer": "The water is flowing rapidly, sweeping debris along its path.",
+"options": [
+"The water is flowing smoothly downstream.",
+"The water is flowing turbulently.",
+"The water is trickling gently over the rocks.",
+"The water is cascading forcefully over the falls."
+],
+"gt": 1
+},
+{
+"id": 1171,
+"task": "FPD",
+"video": "Ego4D/video/779d8772-d716-4db2-883e-831d822e721f.mp4",
+"realtime": 48.1,
+"question": "What is this person about to do with the object they are holding?",
+"answer": "The person is adjusting the tire on the vehicle.",
+"options": [
+"The person is about to inflate the tire with a pump.",
+"The person is about to change the tire on the vehicle.",
+"The person is about to measure the tire pressure with a gauge.",
+"The person is about to wash the tire with a hose."
+],
+"gt": 1
+},
+{
+"id": 393,
+"task": "HLD",
+"video": "Ego4D/clips/5a93f209-59d4-4950-80d2-c8e43cc2fe7f.mp4",
+"question": "Where was the sheet pan before I placed it on the oven?",
+"answer": "Unable to answer",
+"options": [
+"table",
+"Unable to answer",
+"counter",
+"floor"
+],
+"gt": 1,
+"realtime": 417
+},
+{
+"id": 1304,
+"task": "ACR",
+"video": "AutoEvalMetaData/116.mp4",
+"realtime": 1142.4,
+"question": "What is she doing?",
+"answer": "She is using a large ladle to scoop soup into a bowl.",
+"options": [
+"She is talking with the man.",
+"She is eating food.",
+"She is driving the car.",
+"She is scooping soup into a bowl."
+],
+"gt": 3
+},
+{
+"id": 76,
+"task": "EPM",
+"video": "Ego4D/clips/ab094ea2-9251-4f10-945b-c2ab00c5282e.mp4",
+"realtime": 228,
+"question": "Where did i put the black knife?",
+"answer": "chopping board",
+"options": [
+"chopping board",
+"kitchen sink",
+"kitchen table",
+"drawer"
+],
+"gt": 0
+},
+{
+"id": 869,
+"task": "OJR",
+"video": "AutoEvalMetaData/236.mp4",
+"realtime": 658.8,
+"question": "What item is the boxer holding while being surrounded by others?",
+"answer": "The boxer is holding a trophy.",
+"options": [
+"The boxer is holding a trophy.",
+"The boxer is holding a microphone.",
+"The boxer is holding a bouquet of flowers.",
+"The boxer is holding a championship belt."
+],
+"gt": 3
+},
+{
+"id": 20,
+"task": "EPM",
+"video": "Ego4D/clips/38a0d090-c67f-4197-b2a6-65cb56c356c5.mp4",
+"realtime": 304,
+"question": "What did I pick from the utensil holder?",
+"answer": "Dying pan",
+"options": [
+"Knife",
+"Spoon",
+"Dying pan",
+"Fork"
+],
+"gt": 2
+},
+{
+"id": 878,
+"task": "OJR",
+"video": "AutoEvalMetaData/234.mp4",
+"realtime": 154.84,
+"question": "How many go-karts are visible in the area?",
+"answer": "There are four go-karts in view.",
+"options": [
+"One go-kart",
+"Two go-karts",
+"Three go-karts",
+"Four go-karts"
+],
+"gt": 3
+},
+{
+"id": 367,
+"task": "HLD",
+"video": "Ego4D/clips/33c3f556-cf99-45ae-9d01-9051b9b1f19e.mp4",
+"question": "Where did I put the video game box?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"on a table",
+"in a cart",
+"on the floor"
+],
+"gt": 0,
+"realtime": 290
+},
+{
+"id": 896,
+"task": "OJR",
+"video": "AutoEvalMetaData/111.mp4",
+"realtime": 84.38,
+"question": "What type of animal is leaping in the sky?",
+"answer": "A cartoonish flying creature resembling a dinosaur.",
+"options": [
+"It is a mythical creature with wings and a long tail.",
+"It is a cartoonish flying creature resembling a dinosaur.",
+"It is a fantastical beast with bright scales.",
+"It is a magical bird with feathers and talons."
+],
+"gt": 1
+},
+{
+"id": 941,
+"task": "OJR",
+"video": "AutoEvalMetaData/100.mp4",
+"realtime": 970.88,
+"question": "What is she holding in her hand?",
+"answer": "A pair of sunglasses",
+"options": [
+"A pair of sunglasses",
+"Black gift bag",
+"A green box.",
+"A red box and a green box."
+],
+"gt": 0
+},
+{
+"id": 476,
+"task": "HLD",
+"video": "OpenEQA/012-hm3d-XB4GS9ShBRE.mp4",
+"question": "After washing my hands in the sink, what should I use to dry my hands?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"Use the paper towel",
+"Dry my hands with the air",
+"Use the toilet paper"
+],
+"gt": 0,
+"realtime": 26
+},
+{
+"id": 69,
+"task": "EPM",
+"video": "Ego4D/clips/b01fdd44-357c-4566-b487-d9ff21e56c2e.mp4",
+"realtime": 278,
+"question": "Where was the onion before I picked it?",
+"answer": "nylon",
+"options": [
+"nylon",
+"in the cabinet",
+"inside the refrigerator",
+"on the counter"
+],
+"gt": 0
+},
+{
+"id": 501,
+"task": "ASI",
+"video": "cross_task/k5_89KhvpK4.mp4",
+"realtime": 192.21,
+"question": "What does the person do after put bread in pan",
+"answer": "flip bread",
+"options": [
+"pour milk",
+"flip bread",
+"dip bread in mixture",
+"pour egg"
+],
+"gt": 1
+},
+{
+"id": 1115,
+"task": "FPD",
+"video": "Ego4D/video/151dbdab-9705-4641-a8f7-9f432cec8c2e.mp4",
+"realtime": 227.77,
+"question": "What is this person about to do?",
+"answer": "The person is tightening the screw on the bicycle wheel.",
+"options": [
+"The person is about to tighten a screw on the bicycle wheel.",
+"The person is about to inspect the bicycle brake.",
+"The person is about to inflate the bicycle tire.",
+"The person is about to clean the bicycle spokes."
+],
+"gt": 0
+},
+{
+"id": 307,
+"task": "HLD",
+"video": "Ego4D/clips/6e73e4ca-d147-40ea-8587-035e8f2850c7.mp4",
+"question": "Did I move the ruler one last time?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"no"
+],
+"gt": 0,
+"realtime": 1130
+},
+{
+"id": 1213,
+"task": "ACR",
+"video": "Ego4D/video/f43e2a97-b81b-4271-befd-569552d8129c.mp4",
+"realtime": 201.0,
+"question": "What is he doing with the tool in his left hand?",
+"answer": "He is hitting objects with a tool.",
+"options": [
+"He is adjusting a bolt with a tool",
+"He is tightening a loose connection with a wrench",
+"He is aligning two components precisely with a spanner",
+"He is connecting the pipe to the interface."
+],
+"gt": 0
+},
+{
+"id": 27,
+"task": "EPM",
+"video": "Ego4D/clips/7bf24899-4a05-46d4-b47d-36ce045643d8.mp4",
+"realtime": 202,
+"question": "How many cards did I move?",
+"answer": "four",
+"options": [
+"four",
+"seven",
+"one",
+"nine"
+],
+"gt": 0
+},
+{
+"id": 1229,
+"task": "ACR",
+"video": "Ego4D/video/6a7972a1-4984-4680-b91c-3326dbbe97aa.mp4",
+"realtime": 135.3,
+"question": "What does the person do after chopping the onion?",
+"answer": "They start opening the package of mushrooms.",
+"options": [
+"They grab a skillet to stir-fry the vegetables.",
+"They take out the carrots to chop next.",
+"They reach for the cutting board to slice tomatoes.",
+"They start opening the package of mushrooms."
+],
+"gt": 3
+},
+{
+"id": 956,
+"task": "OJR",
+"video": "Ego4D/video/68e54307-c0d1-4ed3-9c67-45827293c21e.mp4",
+"realtime": 128.73,
+"question": "What object is being attached to the back of it?",
+"answer": "A basket is being attached to the back of the bicycle.",
+"options": [
+"A bag",
+"A saddlebag",
+"A basket",
+"A pannier"
+],
+"gt": 2
+},
+{
+"id": 263,
+"task": "EPM",
+"video": "OpenEQA/011-hm3d-bzCsHPLDztK.mp4",
+"realtime": 109,
+"question": "Where is the black and grey speaker?",
+"answer": "On the first shelf of the wooden cabinet",
+"options": [
+"(E) On the first shelf of the white cabinet",
+"On the third shelf of the wooden cabinet",
+"On the floor under the wooden cabinet",
+"On the first shelf of the wooden cabinet",
+"On the second shelf of the wooden cabinet"
+],
+"gt": 3
+},
+{
+"id": 243,
+"task": "EPM",
+"video": "OpenEQA/031-hm3d-Nfvxx8J5NCo.mp4",
+"realtime": 102,
+"question": "what color are the chairs?",
+"answer": "Brown",
+"options": [
+"Brown",
+"Red",
+"Black",
+"White"
+],
+"gt": 0
+},
+{
+"id": 1067,
+"task": "ATR",
+"video": "AutoEvalMetaData/97.mp4",
+"realtime": 192.23,
+"question": "What kind of material seems to be on the ground around the structure?",
+"answer": "The ground around the structure is covered with grass and soil.",
+"options": [
+"Concrete and asphalt",
+"Sand and pebbles",
+"Grass and soil.",
+"Leaves and small branches"
+],
+"gt": 2
+},
+{
+"id": 912,
+"task": "OJR",
+"video": "AutoEvalMetaData/142.mp4",
+"realtime": 270.0,
+"question": "What is she holding?",
+"answer": "A bottle of water",
+"options": [
+"A bag of blue oatmeal",
+"A bottle of water",
+"Bottle of hot sauce",
+"Bottle of ketchup"
+],
+"gt": 1
+},
+{
+"id": 429,
+"task": "HLD",
+"video": "OpenEQA/036-hm3d-rJhMRvNn4DS.mp4",
+"question": "is the lamp in the bedroom on or off?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"The lamp is off."
+],
+"gt": 0,
+"realtime": 14
+},
+{
+"id": 272,
+"task": "EPM",
+"video": "OpenEQA/007-hm3d-bxsVRursffK.mp4",
+"realtime": 113,
+"question": "What color are the flowers on the black table downstairs?",
+"answer": "White",
+"options": [
+"Red",
+"White",
+"Pink",
+"Yellow"
+],
+"gt": 1
+},
+{
+"id": 249,
+"task": "EPM",
+"video": "OpenEQA/018-hm3d-dHwjuKfkRUR.mp4",
+"realtime": 63,
+"question": "Where is the picture with the red flowers?",
+"answer": "Next to the stairway",
+"options": [
+"In the living room",
+"Next to the stairway",
+"On the bookshelf"
+],
+"gt": 1
+},
+{
+"id": 769,
+"task": "STU",
+"video": "AutoEvalMetaData/270.mp4",
+"realtime": 38.77,
+"question": "Which sheet has the less strips on it?",
+"answer": "First on the left has the less strips on it, with three strips,The others are four..",
+"options": [
+"First on the left",
+"Second from the left",
+"Third from the left",
+"Fourth from the left"
+],
+"gt": 0
+},
+{
+"id": 606,
+"task": "ASI",
+"video": "star/LSVHK.mp4",
+"realtime": 25,
+"question": "What did the person do to the towel before opening the door?",
+"answer": "Threw.",
+"options": [
+"Threw.",
+"Tidied up.",
+"Took.",
+"Put down."
+],
+"gt": 0
+},
+{
+"id": 1163,
+"task": "FPD",
+"video": "Ego4D/video/6774ba16-a7dc-4104-8d95-6feb6058b3e1.mp4",
+"realtime": 300.47,
+"question": "What is this person about to do with the object in the stand?",
+"answer": "The person is about to touch the wheel of the bicycle in the stand.",
+"options": [
+"The person is about to fix or adjust the bicycle.",
+"The person is about to tune or play the guitar.",
+"The person is about to give a presentation or speech.",
+"The person is about to photograph or take a picture."
+],
+"gt": 0
+},
+{
+"id": 38,
+"task": "EPM",
+"video": "Ego4D/clips/453bf120-65a3-4616-bbd7-51bafdaac44d.mp4",
+"realtime": 328,
+"question": "where is the nail gun?",
+"answer": "at the top of carpet",
+"options": [
+"on the floor",
+"at the top of carpet",
+"on the chair",
+"on the desk"
+],
+"gt": 1
+},
+{
+"id": 1056,
+"task": "ATR",
+"video": "AutoEvalMetaData/84.mp4",
+"realtime": 289.37,
+"question": "What is the color of the clothing of the individual on the digital display?",
+"answer": "The clothing is red and black.",
+"options": [
+"Blue and white.",
+"Green and yellow.",
+"Grey and pink.",
+"Red and black."
+],
+"gt": 3
+},
+{
+"id": 778,
+"task": "STU",
+"video": "AutoEvalMetaData/15.mp4",
+"realtime": 76.32,
+"question": "Which object is located directly in front of the person on the right, closest to them?",
+"answer": "A glass of juice.",
+"options": [
+"Hot pot.",
+"A plate of meatloaf. ",
+"A glass of juice..",
+"The fruit platter."
+],
+"gt": 2
+},
+{
+"id": 1403,
+"task": "OCR",
+"video": "AutoEvalMetaData/94.mp4",
+"realtime": 141.24,
+"question": "Which player is shooting?",
+"answer": "2",
+"options": [
+"23",
+"2",
+"33",
+"9"
+],
+"gt": 1
+},
+{
+"id": 489,
+"task": "ASI",
+"video": "COIN/Wd3ihpZqOck.mp4",
+"realtime": 111,
+"question": "What does the person do after ink the marked area",
+"answer": "transfer print",
+"options": [
+"scrape tarpaulin without ink",
+"draw black patterns",
+"transfer pattern to board or tarpaulin",
+"transfer print"
+],
+"gt": 3
+},
+{
+"id": 420,
+"task": "HLD",
+"video": "OpenEQA/004-hm3d-66seV3BWPoX.mp4",
+"question": "What is above the red couch?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"A door",
+"A staircase",
+"A window"
+],
+"gt": 0,
+"realtime": 10
+},
+{
+"id": 832,
+"task": "OJR",
+"video": "YouTube_Games/Bu0z7pxeIes&list=PL3bIgEVl_gDzIfuotDjHjcXzUkB6ZvMXk&index=3.mp4",
+"realtime": 562,
+"question": "What's on the ground??",
+"answer": "Blood.",
+"options": [
+"Grass.",
+"Water.",
+"Sand.",
+"Blood."
+],
+"gt": 3
+},
+{
+"id": 513,
+"task": "ASI",
+"video": "cross_task/DLrZYkn8zBU.mp4",
+"realtime": 60.22,
+"question": "What does the person do before add ham",
+"answer": "pour sesame oil",
+"options": [
+"add onion",
+"pour sesame oil",
+"add rice",
+"add kimchi"
+],
+"gt": 1
+},
+{
+"id": 226,
+"task": "EPM",
+"video": "OpenEQA/015-hm3d-5jp3fCRSRjc.mp4",
+"realtime": 68,
+"question": "Where is the china cabinet?",
+"answer": "To the left of the dining table",
+"options": [
+"To the right of the front door",
+"To the right of the dining table",
+"Next to the stairs",
+"To the left of the dining table"
+],
+"gt": 3
+},
+{
+"id": 264,
+"task": "EPM",
+"video": "OpenEQA/026-hm3d-tQ5s4ShP627.mp4",
+"realtime": 163,
+"question": "What cartoon character is portrayed in the painting to the right of the television in the first bedroom?",
+"answer": "Donald Duck",
+"options": [
+"Goofy",
+"Pluto",
+"Mickey Mouse",
+"Donald Duck"
+],
+"gt": 3
+},
+{
+"id": 1320,
+"task": "OCR",
+"video": "AutoEvalMetaData/106.mp4",
+"realtime": 136.38,
+"question": "What is the leading player's time at the 150m mark?",
+"answer": "1:16.96",
+"options": [
+"1:16.96",
+"1:15.89",
+"1:14.32",
+"1:19.01"
+],
+"gt": 0
+},
+{
+"id": 141,
+"task": "EPM",
+"video": "Ego4D/clips/755ac5c3-b6cd-42da-ac72-c413d0be986a.mp4",
+"realtime": 344,
+"question": "Where did I put the screwdriver?",
+"answer": "right hand",
+"options": [
+"left hand",
+"right hand",
+"in the toolbox",
+"on the cabinet"
+],
+"gt": 1
+},
+{
+"id": 1073,
+"task": "ATR",
+"video": "AutoEvalMetaData/141.mp4",
+"realtime": 170.92,
+"question": "How is his facial expression as he exercises?",
+"answer": "His facial expression looks strained as he pulls on the straps.",
+"options": [
+"His facial expression is relaxed.",
+"His facial expression looks strained.",
+"His facial expression is focused.",
+"His facial expression is calm."
+],
+"gt": 1
+},
+{
+"id": 1150,
+"task": "FPD",
+"video": "Ego4D/video/045fcc4d-ad1b-441c-a28c-45bebb88f9bf.mp4",
+"realtime": 93.13,
+"question": "What is this person going to do with the containers?",
+"answer": "The person is going to put the lid on the container.",
+"options": [
+"The person is going to fill the container with ingredients.",
+"The person is going to wash the containers.",
+"The person is going to stack the containers together.",
+"The person is going to put the lid on the container."
+],
+"gt": 3
+},
+{
+"id": 204,
+"task": "EPM",
+"video": "OpenEQA/025-hm3d-ziup5kvtCCR.mp4",
+"realtime": 22,
+"question": "What type of numbers are on the clock?",
+"answer": "Roman numerals",
+"options": [
+"Arabic numerals",
+"Binary numbers",
+"Roman numerals",
+"Greek numerals"
+],
+"gt": 2
+},
+{
+"id": 344,
+"task": "HLD",
+"video": "Ego4D/clips/d87b96a7-09f5-419d-84fc-f916bd68ae1b.mp4",
+"question": "Where did I put the bag?",
+"answer": "Unable to answer",
+"options": [
+"on the driver's seat",
+"Unable to answer",
+"at the hallway",
+"on the dining table"
+],
+"gt": 1,
+"realtime": 27
+},
+{
+"id": 371,
+"task": "HLD",
+"video": "Ego4D/clips/07cc6e65-df8c-46fb-b4be-b808d777454f.mp4",
+"question": "In what location did I see the wooden frame?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"in top of cupboard",
+"on the floor",
+"on the shelf"
+],
+"gt": 0,
+"realtime": 420
+},
+{
+"id": 750,
+"task": "STU",
+"video": "AutoEvalMetaData/292.mp4",
+"realtime": 68.0,
+"question": "What direction is the cannon under the green pipeline firing shells in?",
+"answer": "left.",
+"options": [
+"right",
+"left",
+"up",
+"down"
+],
+"gt": 1
+},
+{
+"id": 1378,
+"task": "OCR",
+"video": "AutoEvalMetaData/231.mp4",
+"realtime": 358.92,
+"question": "What is the text on the screen now?",
+"answer": "WHAT DID I JUST HEAR",
+"options": [
+"PREPARING THE VEGAN EGG MIXTURE",
+"Vegan Eggless Eggs",
+"WHAT DID I JUST HEAR",
+"IS THIS EVEN REAL"
+],
+"gt": 2
+},
+{
+"id": 9,
+"task": "EPM",
+"video": "Ego4D/clips/534d9bf8-bdc5-4236-8dba-dd7b894218d2.mp4",
+"realtime": 40,
+"question": "who did I interact with when I was playing poker?",
+"answer": "a man wearing a black shirt",
+"options": [
+"a woman wearing blue shirt",
+"a man wearing a black shirt",
+"a woman wearing a white shirt",
+"a man wearing a red shirt"
+],
+"gt": 1
+},
+{
+"id": 446,
+"task": "HLD",
+"video": "OpenEQA/024-hm3d-c3WKCnkEdha.mp4",
+"question": "Where is the microwave?",
+"answer": "Unable to answer",
+"options": [
+"In the cabinet",
+"On the table",
+"Unable to answer",
+"On the counter"
+],
+"gt": 2,
+"realtime": 24
+},
+{
+"id": 599,
+"task": "ASI",
+"video": "star/F5TL0.mp4",
+"realtime": 21,
+"question": "Which object did the person close before they took the cup/glass/bottle?",
+"answer": "The refrigerator.",
+"options": [
+"The door.",
+"The refrigerator.",
+"The closet/cabinet.",
+"The paper/notebook."
+],
+"gt": 1
+},
+{
+"id": 709,
+"task": "STU",
+"video": "AutoEvalMetaData/6.mp4",
+"realtime": 55.31,
+"question": "What is the position of the person relative to the bench?",
+"answer": "He is sitting on the bench.",
+"options": [
+"He is leaning against the bench.",
+"He is lying under the bench.",
+"He is sitting on the bench.",
+"He is standing next to the bench."
+],
+"gt": 2
+},
+{
+"id": 1333,
+"task": "OCR",
+"video": "AutoEvalMetaData/263.mp4",
+"realtime": 558.82,
+"question": "What text is visible on the bottle in the middle?",
+"answer": "Coca-Cola",
+"options": [
+"Heineken",
+"Budweiser",
+"Coca-Cola",
+"Pepsi"
+],
+"gt": 2
+},
+{
+"id": 934,
+"task": "OJR",
+"video": "AutoEvalMetaData/100.mp4",
+"realtime": 57.76,
+"question": "What can be seen on the wall behind the person?",
+"answer": "A painting is visible in the background over the sofa.",
+"options": [
+"A wall clock",
+"A mirror",
+"A painting",
+"A series of bookshelves"
+],
+"gt": 2
+},
+{
+"id": 697,
+"task": "STU",
+"video": "AutoEvalMetaData/42.mp4",
+"realtime": 223.79,
+"question": "What is the position of the red and green parrot relative to the blue parrot?",
+"answer": "The red and green parrot is on top of the cage, while the blue parrot is standing on the side platform of the cage.",
+"options": [
+"The red and green parrot is below the blue parrot.",
+"The red and green parrot is left of the blue parrot.",
+"The red and green parrot is above the white parrot.",
+"The red and green parrot is right of the blue parrot."
+],
+"gt": 2
+},
+{
+"id": 1374,
+"task": "OCR",
+"video": "AutoEvalMetaData/59.mp4",
+"realtime": 143.92,
+"question": "What text appears on the white shirts worn by the players in the dugout?",
+"answer": "The shirts display the word 'Privateers.'",
+"options": [
+"The shirts display 'Marauders.'",
+"The shirts display 'Privateers.'",
+"The shirts display 'Corsairs.'",
+"The shirts display 'Buccaneers.'"
+],
+"gt": 1
+},
+{
+"id": 164,
+"task": "EPM",
+"video": "Ego4D/clips/8c788340-5a9c-420d-8c29-ed7880d5d9ab.mp4",
+"realtime": 161,
+"question": "What did I put in the washing machine?",
+"answer": "detergent",
+"options": [
+"cloths",
+"detergent",
+"soap",
+"phone"
+],
+"gt": 1
+},
+{
+"id": 349,
+"task": "HLD",
+"video": "Ego4D/clips/8a855547-3574-4e67-a7ac-41b072984e3b.mp4",
+"question": "Where did I put the bottle of water I drank from?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"in the tool bag",
+"in the van",
+"on the floor"
+],
+"gt": 0,
+"realtime": 323
+},
+{
+"id": 437,
+"task": "HLD",
+"video": "OpenEQA/018-hm3d-dHwjuKfkRUR.mp4",
+"question": "What is in between the two bedroom doorways?",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"A shelf with books",
+"A painting",
+"A floor lamp"
+],
+"gt": 0,
+"realtime": 52
+},
+{
+"id": 1280,
+"task": "ACR",
+"video": "AutoEvalMetaData/150.mp4",
+"realtime": 103.84,
+"question": "How is he positioned while shot at from the left?",
+"answer": "He is crouching behind a vehicle for cover while shooting.",
+"options": [
+"He is standing behind a dumpster.",
+"He is partially hidden in a doorway.",
+"He is crouching behind a bush.",
+"He is crouching behind a vehicle."
+],
+"gt": 3
+},
+{
+"id": 380,
+"task": "HLD",
+"video": "Ego4D/clips/2c2bda8d-69a3-4a90-9ad6-f6715bc99f39.mp4",
+"question": "What colour is the pant I put on the table",
+"answer": "Unable to answer",
+"options": [
+"Unable to answer",
+"black",
+"brown",
+"army green"
+],
+"gt": 0,
+"realtime": 302
+},
+{
+"id": 1211,
+"task": "ACR",
+"video": "Ego4D/video/e1fa5de2-eb21-41a3-85b3-882a3652df42.mp4",
+"realtime": 228.93,
+"question": "What is he doing?",
+"answer": "He is opening the window.",
+"options": [
+"He is using a gauge to measure the pressure.",
+"He is repairing a bicycle.",
+"He is inflating a tire.",
+"He is opening the window."
+],
+"gt": 3
+},
+{
+"id": 239,
+"task": "EPM",
+"video": "OpenEQA/000-hm3d-BFRyYbPCCPE.mp4",
+"realtime": 50,
+"question": "What is the white object on the wall above the TV?",
+"answer": "Air conditioning unit",
+"options": [
+"Painting",
+"Light fixture",
+"Air conditioning unit",
+"Fan"
+],
+"gt": 2
+},
+{
+"id": 635,
+"task": "STU",
+"video": "YouTube_Games/PLJ3VIGhVd3r8Int6IZT_v3S_BzG9RVfiG&index=2.mp4",
+"realtime": 560,
+"question": "Which direction am I moving?",
+"answer": "Move forward while moving up",
+"options": [
+"Move backward while moving up",
+"Move forward while moving down",
+"Move backward while moving down",
+"Move forward while moving up"
+],
+"gt": 3
+},
+{
+"id": 610,
+"task": "ASI",
+"video": "star/R971Z.mp4",
+"realtime": 21,
+"question": "What happened before the person held the mirror?",
+"answer": "Put down the shoe.",
+"options": [
+"Put down the food.",
+"Put down the shoe.",
+"Took the blanket.",
+"Put down the pillow."
+],
+"gt": 1
+},
+{
+"id": 245,
+"task": "EPM",
+"video": "OpenEQA/016-hm3d-nrA1tAA17Yp.mp4",
+"realtime": 91,
+"question": "Where can I lay down and read a book?",
+"answer": "The couch",
+"options": [
+"The couch",
+"The piano",
+"The table",
+"The chair"
+],
+"gt": 0
+},
+{
+"id": 1173,
+"task": "FPD",
+"video": "Ego4D/video/7eb6abcd-443e-4354-9742-6f5bf5bd9626.mp4",
+"realtime": 146.17,
+"question": "What is this person about to do with the item in their hand?",
+"answer": "The person is about to open a bag.",
+"options": [
+"The person is about to eat something from the item.",
+"The person is about to open a bag.",
+"The person is about to write something.",
+"The person is about to throw the item away."
+],
+"gt": 1
+},
+{
+"id": 1451,
+"task": "OCR",
+"video": "AutoEvalMetaData/88.mp4",
+"realtime": 968.97,
+"question": "What's written on the side of the white plastic bag?",
+"answer": "The text reads 'lululemon'.",
+"options": [
+"Nike",
+"lululemon",
+"Adidas",
+"Under Armour"
+],
+"gt": 1
+},
+{
+"id": 90,
+"task": "EPM",
+"video": "Ego4D/clips/43db99a3-61ce-4548-ba5a-faf4c91c72f1.mp4",
+"realtime": 211,
+"question": "Where did I put the disposable plate?",
+"answer": "in the garbage",
+"options": [
+"in the garbage",
+"on the table",
+"in the fridge",
+"in the box"
+],
+"gt": 0
+},
+{
+"id": 265,
+"task": "EPM",
+"video": "OpenEQA/004-hm3d-66seV3BWPoX.mp4",
+"realtime": 64,
+"question": "What is in the center of the room with the stairs?",
+"answer": "A red couch",
+"options": [
+"A white door",
+"A white refrigerator",
+"A red couch",
+"A table with two chairs"
+],
+"gt": 2
+},
+{
+"id": 484,
+"task": "ASI",
+"video": "COIN/TGB9fz9acp0.mp4",
+"realtime": 98,
+"question": "What does the person do after install the SSD onto the hard disk tray",
+"answer": "install the screws and sheetmetals and baffles onto the hard disk tray",
+"options": [
+"install the screws and sheetmetals and baffles onto the hard disk tray",
+"take out the laptop CD drive",
+"screw off the screws and sheetmetals and baffles on the both sides of the CD drive"
+],
+"gt": 0
+},
+{
+"id": 643,
+"task": "STU",
+"video": "YouTube_Games/PLJ3VIGhVd3r8Int6IZT_v3S_BzG9RVfiG&index=5.mp4",
+"realtime": 545,
+"question": "Where is the frog sitting?",
+"answer": "At the center of a pool.",
+"options": [
+"On the stone platform.",
+"At the corner of a pool.",
+"On the wooden platform.",
+"At the center of a pool."
+],
+"gt": 3
+},
+{
+"id": 1379,
+"task": "OCR",
+"video": "AutoEvalMetaData/231.mp4",
+"realtime": 363.32,
+"question": "What word is written above the plate?",
+"answer": "QUAIL EGG",
+"options": [
+"QUAIL EGG",
+"OSTRICH EGG",
+"CHICKEN EGG",
+"DUCK EGG"
+],
+"gt": 0
+},
+{
+"id": 571,
+"task": "ASI",
+"video": "youcook2/paiJGvLILKE.mp4",
+"realtime": 264,
+"question": "What does the person do before spread some mayo between two buns",
+"answer": "cook the marinated beef in a pan",
+"options": [
+"put the cooked beef in between",
+"cook the marinated beef in a pan",
+"also spread some hoi sin sauce",
+"add herbs and carrot daikon and hot sauce in between and serve"
+],
+"gt": 1
+},
+{
+"id": 1029,
+"task": "ATR",
+"video": "AutoEvalMetaData/311.mp4",
+"realtime": 525.93,
+"question": "What shape can be observed in the object displayed?",
+"answer": "The object has a circular shape.",
+"options": [
+"The object has a triangular shape.",
+"The object has an oval shape.",
+"The object has a rectangular shape.",
+"The object has a circular shape."
+],
+"gt": 3
+},
+{
+"id": 290,
+"task": "EPM",
+"video": "OpenEQA/033-hm3d-vd3HHTEpmyA.mp4",
+"realtime": 112,
+"question": "what color are the electric switches in the above floor",
+"answer": "White",
+"options": [
+"Black",
+"White",
+"Red",
+"Brown"
+],
+"gt": 1
+},
+{
+"id": 142,
+"task": "EPM",
+"video": "Ego4D/clips/755ac5c3-b6cd-42da-ac72-c413d0be986a.mp4",
+"realtime": 11,
+"question": "In what location did I see a carton?",
+"answer": "cabinet",
+"options": [
+"cabinet",
+"toolbox",
+"floor",
+"wall"
+],
+"gt": 0
+},
+{
+"id": 179,
+"task": "EPM",
+"video": "Ego4D/clips/5a93f209-59d4-4950-80d2-c8e43cc2fe7f.mp4",
+"realtime": 168,
+"question": "What did i pour in the jug?",
+"answer": "water",
+"options": [
+"water",
+"yeast",
+"milk",
+"oil"
+],
+"gt": 0
+},
+{
+"id": 810,
+"task": "OJR",
+"video": "YouTube_Games/PLJ3VIGhVd3r8Int6IZT_v3S_BzG9RVfiG&index=2.mp4",
+"realtime": 506,
+"question": "What is in the bottom and right side?",
+"answer": "An orange fire.",
+"options": [
+"The ground.",
+"The trees",
+"An orange fire.",
+"A piece of rock."
+],
+"gt": 2
+},
+{
+"id": 1440,
+"task": "OCR",
+"video": "AutoEvalMetaData/254.mp4",
+"realtime": 21.27,
+"question": "What name is on the cardboard house?",
+"answer": "BiBi",
+"options": [
+"Ziggy",
+"Coco",
+"BiBi",
+"Maxi"
+],
+"gt": 2
+},
+{
+"id": 1101,
+"task": "ATR",
+"video": "AutoEvalMetaData/226.mp4",
+"realtime": 943.61,
+"question": "What is the prominent color of the obstacle on the structure?",
+"answer": "The prominent color of the obstacle is red.",
+"options": [
+"Red.",
+"Blue",
+"Yellow",
+"Green"
+],
+"gt": 0
+},
+{
+"id": 1461,
+"task": "OCR",
+"video": "AutoEvalMetaData/149.mp4",
+"realtime": 289.95,
+"question": "How many players are still alive according to the HUD?",
+"answer": "There are 27 players alive.",
+"options": [
+"18 players remaining.",
+"42 players alive.",
+"27 players alive.",
+"32 players alive."
+],
+"gt": 2
+},
+{
+"id": 657,
+"task": "STU",
+"video": "YouTube_Games/8gtpP2Toigg&list=PL3bIgEVl_gDzIfuotDjHjcXzUkB6ZvMXk&index=2.mp4",
+"realtime": 507,
+"question": "What is the relative direction between me and the black tree?",
+"answer": "To the right and front.",
+"options": [
+"To the right and back.",
+"To the right and front.",
+"To the left and back.",
+"To the left and front."
+],
+"gt": 1
+},
+{
+"id": 1170,
+"task": "FPD",
+"video": "Ego4D/video/779d8772-d716-4db2-883e-831d822e721f.mp4",
+"realtime": 90.63,
+"question": "What is this person about to do?",
+"answer": "The person is going to pick up a wrench.",
+"options": [
+"The person is about to pick up a wrench.",
+"The person is about to start fixing the bike.",
+"The person is about to tighten the screws on a bookshelf.",
+"The person is about to check the engine."
+],
+"gt": 0
+},
+{
+"id": 665,
+"task": "STU",
+"video": "YouTube_Games/RiIYSrrwjuU&list=PL3bIgEVl_gDzIfuotDjHjcXzUkB6ZvMXk&index=6.mp4",
+"realtime": 258,
+"question": "Which direction am I moving?",
+"answer": "Move forward while moving up.",
+"options": [
+"Move backward while moving down.",
+"Move forward while moving up.",
+"Move forward while moving down.",
+"Move backward while moving up."
+],
+"gt": 1
+},
+{
+"id": 355,
+"task": "HLD",
+"video": "Ego4D/clips/1c865785-9ac6-4f16-baa4-97405aacad6a.mp4",
+"question": "Where did I put the frying pan?",
+"answer": "Unable to answer",
+"options": [
+"In the sink",
+"Unable to answer",
+"On the floor",
+"On top of the cabinet"
+],
+"gt": 1,
+"realtime": 320
+},
+{
+"id": 1014,
+"task": "ATR",
+"video": "Ego4D/video/c85d9006-00b3-450e-be12-cc3a1a0ca070.mp4",
+"realtime": 99.37,
+"question": "What is the material of the object being cleaned?",
+"answer": "The object being cleaned is made of metal.",
+"options": [
+"Plastic",
+"Metal",
+"Wood",
+"Glass"
+],
+"gt": 1
+},
+{
+"id": 507,
+"task": "ASI",
+"video": "cross_task/3zv8EjVGTPs.mp4",
+"realtime": 238.0,
+"question": "What does the person do after remove bread from pan",
+"answer": "top toast",
+"options": [
+"put bread in pan",
+"top toast",
+"dip bread in mixture",
+"pour milk"
+],
+"gt": 1
+},
+{
+"id": 495,
+"task": "ASI",
+"video": "COIN/Q-uCII9Rtz0.mp4",
+"realtime": 45,
+"question": "What does the person do before unscrew the screws used to fix the screen",
+"answer": "take out the battery",
+"options": [
+"take out the battery",
+"install the new screen",
+"pull out the screen connector and remove the screen",
+"reset and screw on the screws"
+],
+"gt": 0
+},
+{
+"id": 873,
+"task": "OJR",
+"video": "AutoEvalMetaData/214.mp4",
+"realtime": 240.47,
+"question": "What is the monkey holding?",
+"answer": "The monkey is holding a fork.",
+"options": [
+"A spoon",
+"A fork",
+"A banana",
+"A stick"
+],
+"gt": 1
+},
+{
+"id": 672,
+"task": "STU",
+"video": "YouTube_Games/lhL3SUb078g&list=PL3bIgEVl_gDzIfuotDjHjcXzUkB6ZvMXk&index=9.mp4",
+"realtime": 438,
+"question": "Which direction am I moving?",
+"answer": "Move forward while moving down.",
+"options": [
+"Move forward while moving down.",
+"Move backward while moving up.",
+"Move backward while moving down.",
+"Move forward while moving up."
+],
+"gt": 0
+},
+{
+"id": 457,
+"task": "HLD",
+"video": "OpenEQA/014-hm3d-rsggHU7g7dh.mp4",
+"question": "How many basins does the sink have?",
+"answer": "Unable to answer",
+"options": [
+"Four",
+"One",
+"Three",
+"Unable to answer"
+],
+"gt": 3,
+"realtime": 42
+},
+{
+"id": 1182,
+"task": "FPD",
+"video": "Ego4D/video/a4385c9b-84f0-4d8f-9227-1efe9f264d50.mp4",
+"realtime": 194.1,
+"question": "What is this person about to do?",
+"answer": "The person is going to take the dough.",
+"options": [
+"The person is setting up to play the drums.",
+"The individual is about to start a barbecue.",
+"The person is about to knead the dough.",
+"The individual is preparing to paint a canvas."
+],
+"gt": 2
+},
+{
+"id": 1259,
+"task": "ACR",
+"video": "AutoEvalMetaData/12.mp4",
+"realtime": 101.64,
+"question": "What is he doing?",
+"answer": "He is playing Electronic organ.",
+"options": [
+"He is playing football.",
+"He is playing guitar.",
+"He is playing Electronic organ.",
+"He is playing tennis."
+],
+"gt": 2
+},
+{
+"id": 756,
+"task": "STU",
+"video": "AutoEvalMetaData/44.mp4",
+"realtime": 869.33,
+"question": "How is the person at the base of the tree supporting the climber's movement?",
+"answer": "The person is standing beneath and appears to be holding the climber's legs to provide support.",
+"options": [
+"The person is supporting the climber by spotting them from below.",
+"The person is supporting the climber by stabilizing their legs.",
+"The person is supporting the climber by giving verbal guidance.",
+"The person is supporting the climber by holding the climbing rope."
+],
+"gt": 1
+},
+{
+"id": 445,
+"task": "HLD",
+"video": "OpenEQA/003-hm3d-c5eTyR3Rxyh.mp4",
+"question": "Where is the cartoon cat?",
+"answer": "Unable to answer",
+"options": [
+"Its on the wardrobe",
+"Unable to answer",
+"Its drawn on the black photo frame",
+"Its on the bathroom wall"
+],
+"gt": 1,
+"realtime": 12
+},
+{
+"id": 149,
+"task": "EPM",
+"video": "Ego4D/clips/4ecd1707-cce9-46bf-9846-11d031f79556.mp4",
+"realtime": 384,
+"question": "In what location did I see the white van?",
+"answer": "at the road",
+"options": [
+"at the road",
+"in the parking lot",
+"near the garage",
+"at the backyard"
+],
+"gt": 0
+},
+{
+"id": 550,
+"task": "ASI",
+"video": "youcook2/bxgdUWKOwtQ.mp4",
+"realtime": 413,
+"question": "What does the person do after cut into two halves and roll one half into a cone",
+"answer": "add stuffing to cone and use some water to seal the top edges",
+"options": [
+"knead dough and roll into oval shape",
+"add stuffing to cone and use some water to seal the top edges",
+"add a little water and mix",
+"heat oil in pan and add cumin seeds asafratida ginger potatoes and peas"
+],
+"gt": 1
+},
+{
+"id": 818,
+"task": "OJR",
+"video": "YouTube_Games/PLJ3VIGhVd3r8Int6IZT_v3S_BzG9RVfiG&index=8.mp4",
+"realtime": 767,
+"question": "What was the monster holding?",
+"answer": "A shield.",
+"options": [
+"A shield.",
+"A flower.",
+"A sword.",
+"A bow."
+],
+"gt": 0
+},
+{
+"id": 629,
+"task": "ASI",
+"video": "star/WJ1E7.mp4",
+"realtime": 23,
+"question": "What did the person do to the shoe before sitting at the table?",
+"answer": "Put down.",
+"options": [
+"Put down.",
+"Threw.",
+"Washed.",
+"Took."
+],
+"gt": 0
+},
+{
+"id": 449,
+"task": "HLD",
+"video": "OpenEQA/029-hm3d-mv2HUxq3B53.mp4",
+"question": "I want to host a dinner party on a summer evening, where should I set the table?",
+"answer": "Unable to answer",
+"options": [
+"On the table in the living room.",
+"On the table in the bedroom.",
+"On the table in the kitchen.",
+"Unable to answer"
+],
+"gt": 3,
+"realtime": 46
+},
+{
+"id": 1054,
+"task": "ATR",
+"video": "AutoEvalMetaData/81.mp4",
+"realtime": 2.04,
+"question": "What is the expression on his face?",
+"answer": "He appears to be focused or concentrating.",
+"options": [
+"He seems anxious.",
+"He looks surprised.",
+"He appears to be focused.",
+"He appears joyful."
+],
+"gt": 2
+}
+]
