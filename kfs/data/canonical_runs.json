@@ -1,0 +1,110 @@
+{
+ "_doc": "Runs feeding RESULTS.md (kfs/make_tables.py reads ONLY these). Changing a run here = a recorded decision (STATUS.md).",
+ "runs_root": "/data/REN/runs/streamkv",
+ "ours": {
+  "q25": {
+   "ovo_recent": "261024-011329-r4_ss",
+   "ovo_timeline": "261024-210535-cap16",
+   "ovo_recent_instr": "261103-202808-r4_cinstr",
+   "ovo_timeline_instr": "261103-202809-cap16_cinstr",
+   "route_ovo": "261025-034047-route_cal_p0",
+   "route_sb": "261025-034048-route_cal_sb_p0",
+   "routers": "261102-000025-routers_cf_q25",
+   "sb": [
+    "261025-044643-sb_casc_s0",
+    "261025-044643-sb_casc_s1",
+    "261025-044643-sb_casc_s2",
+    "261025-044644-sb_casc_s3"
+   ]
+  },
+  "q3": {
+   "ovo_recent": "261101-014502-r4_q3",
+   "ovo_timeline": "261101-024039-cap16_q3",
+   "ovo_recent_instr": "261103-202809-r4_cinstr_q3",
+   "ovo_timeline_instr": "261103-202809-cap16_cinstr_q3",
+   "route_ovo": "261031-233322-route_q3_cal_p0",
+   "route_sb": "261031-233323-route_q3_cal_sb_p0",
+   "routers": "261102-000025-routers_cf_q3",
+   "sb": [
+    "261101-024040-sb_casc_q3_s0",
+    "261101-024040-sb_casc_q3_s1",
+    "261101-024040-sb_casc_q3_s2",
+    "261101-024041-sb_casc_q3_s3"
+   ]
+  },
+  "q4": {
+   "ovo_recent": "261102-004115-r4_q4",
+   "ovo_timeline": "261102-004134-cap16_q4",
+   "ovo_recent_instr": "261103-202810-r4_cinstr_q4",
+   "ovo_timeline_instr": "261103-202811-cap16_cinstr_q4",
+   "route_ovo": "261102-004115-route_q4_cal_p0",
+   "route_sb": "261102-004116-route_q4_cal_sb_p0",
+   "routers": "261102-004116-routers_q4",
+   "sb": [
+    "261102-004134-sb_casc_q4_s0",
+    "261102-004135-sb_casc_q4_s1",
+    "261102-004135-sb_casc_q4_s2",
+    "261102-004135-sb_casc_q4_s3"
+   ]
+  },
+  "lov": {
+   "ovo_recent": "261102-082156-r4_lov",
+   "ovo_timeline": "261102-082210-cap16_lov",
+   "ovo_recent_instr": "261103-202811-r4_cinstr_lov",
+   "ovo_timeline_instr": "261103-202812-cap16_cinstr_lov",
+   "route_ovo": "261102-082157-route_lov_cal_p0",
+   "route_sb": "261102-082157-route_lov_cal_sb_p0",
+   "routers": "261102-082158-routers_lov",
+   "sb": [
+    "261102-082211-sb_casc_lov_s0",
+    "261102-082211-sb_casc_lov_s1",
+    "261102-082212-sb_casc_lov_s2",
+    "261102-082212-sb_casc_lov_s3"
+   ]
+  }
+ },
+ "dhsm": {
+  "q25": {
+   "ovo": [
+    "261102-154755-dhsm_mem_abstain_s0",
+    "261102-154755-dhsm_mem_abstain_s1",
+    "261102-154756-dhsm_mem_abstain_s2",
+    "261102-154756-dhsm_mem_abstain_s3",
+    "261102-154757-dhsm_mem_abstain_s4",
+    "261103-224852-dhsm_mem_abstain_rt_s0",
+    "261103-224852-dhsm_mem_abstain_rt_s1",
+    "261103-224853-dhsm_mem_abstain_rt_s2",
+    "261103-224853-dhsm_mem_abstain_rt_s3",
+    "261103-224854-dhsm_mem_abstain_rt_s4"
+   ],
+   "sb": [
+    "261103-224854-dhsm_sb_q25_s0",
+    "261103-224855-dhsm_sb_q25_s1",
+    "261103-224856-dhsm_sb_q25_s2",
+    "261103-224856-dhsm_sb_q25_s3",
+    "261103-224857-dhsm_sb_q25_s4",
+    "261103-224857-dhsm_sb_q25_s5"
+   ]
+  },
+  "q3": {
+   "ovo": [
+    "261103-224848-dhsm_mem_abstain_q3_s0",
+    "261103-224848-dhsm_mem_abstain_q3_s1",
+    "261103-224849-dhsm_mem_abstain_q3_s2",
+    "261103-224849-dhsm_mem_abstain_q3_s3",
+    "261103-224850-dhsm_mem_abstain_q3_s4",
+    "261103-224850-dhsm_mem_abstain_q3_s5",
+    "261103-224851-dhsm_mem_abstain_q3_s6",
+    "261103-224851-dhsm_mem_abstain_q3_s7"
+   ],
+   "sb": [
+    "261103-224858-dhsm_sb_q3_s0",
+    "261103-224858-dhsm_sb_q3_s1",
+    "261103-224901-dhsm_sb_q3_s2",
+    "261103-224902-dhsm_sb_q3_s3",
+    "261103-224902-dhsm_sb_q3_s4",
+    "261103-224903-dhsm_sb_q3_s5"
+   ]
+  }
+ }
+}
