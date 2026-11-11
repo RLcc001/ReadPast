@@ -26,6 +26,7 @@ os.environ.setdefault("FORCE_QWENVL_VIDEO_READER", "decord")
 os.environ.setdefault("QWEN_EXACT_RECENT_DECODE", "1")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import eval_ovo_kfs  # noqa: E402
 from eval_ovo_kfs import (  # noqa: E402
     NOTE_PROMPTS,
     retain_captions,
@@ -78,7 +79,12 @@ def main() -> None:
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshard", type=int, default=1)
     ap.add_argument("--limit", type=int, default=0, help="first N videos of this shard (smoke tests)")
+    ap.add_argument("--keys", default="", help="round 22: json list of _key to evaluate (subset runs)")
+    ap.add_argument("--write_lag", type=float, default=0.0,
+                    help="round 22: a caption is usable only this many seconds after its clip ends (0 = offline, as before)")
     args = ap.parse_args()
+    eval_ovo_kfs.WRITE_LAG = args.write_lag
+    keep = set(json.load(open(args.keys))) if args.keys else None
 
     entries = json.load(open(args.anno_path))[args.shard::args.nshard]
     if args.limit:
@@ -102,7 +108,7 @@ def main() -> None:
             hist_sec = list(range(max(timestamp_to_seconds(q["time_stamp"]) for q in questions)))
             for q in questions:
                 key = make_key(os.path.basename(video_path), q)
-                if key in done:
+                if key in done or (keep is not None and key not in keep):
                     continue
                 ts = float(timestamp_to_seconds(q["time_stamp"]))
                 prompt, n_opt = build_prompt(q), len(q["options"])

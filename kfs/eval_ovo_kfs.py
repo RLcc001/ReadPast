@@ -318,6 +318,7 @@ def build_segments(layout: str, hist_blocks: VisionBlock, hist_ts: list[float], 
 
 
 _captions: dict[str, list[dict]] = {}
+WRITE_LAG = 0.0  # round 22: a clip's caption becomes usable only WRITE_LAG s after the clip ends (online writer latency)
 _surprisal: dict[str, dict[str, float]] = {}
 _foreign_loaded: set[str] = set()
 TIMELINE_HEADER = "Timeline of the video so far (automatic captions of earlier clips):\n"
@@ -329,11 +330,11 @@ def is_no_change(text: str) -> bool:
 
 
 def timeline_captions(cap_dir: str, video: str, query_ts: float) -> list[dict]:
-    """Informative captions of the clips that ended by `query_ts`."""
+    """Informative captions of the clips that ended by `query_ts` (and were written by then: t1 + WRITE_LAG <= query_ts)."""
     if video not in _captions:
         path = os.path.join(cap_dir, video.replace("/", "__") + ".json")
         _captions[video] = json.load(open(path))["captions"] if os.path.exists(path) else []
-    return [c for c in _captions[video] if c["t1"] <= query_ts + 1e-6 and not is_no_change(c["text"])]
+    return [c for c in _captions[video] if c["t1"] + WRITE_LAG <= query_ts + 1e-6 and not is_no_change(c["text"])]
 
 
 def flush_caption(args, qa: KFSModel, video_path: str, raw_fps: float, caps: list[dict], q_ts: float) -> dict | None:
@@ -674,6 +675,8 @@ def main() -> None:
     ap.add_argument("--tl_select", choices=["", "oracle", "random1"], default="",
                     help="diagnostic, uses the answer: timeline = the caption best matching the answer (oracle) or one random other caption")
     ap.add_argument("--keys", default="", help="json list of '<task>:<id>' to evaluate (subset runs)")
+    ap.add_argument("--write_lag", type=float, default=0.0,
+                    help="round 22: a caption is usable only this many seconds after its clip ends (0 = offline, as before)")
     ap.add_argument("--fps", type=float, default=1.0)
     ap.add_argument("--clip_path", default="/workspace/models/clip-vit-large-patch14-336-st")
     ap.add_argument("--cache_dir", default="/workspace/streamkv/cache/clip_l336_ovo")
@@ -692,6 +695,8 @@ def main() -> None:
     assert not args.foreign_timeline or args.captions, "--foreign_timeline needs --captions"
     assert not args.cascade or (args.captions and args.k == 0), "--cascade needs --captions and no history keyframes"
     args.surprisal = args.surprisal or args.captions.rstrip("/") + "_surprisal"
+    global WRITE_LAG
+    WRITE_LAG = args.write_lag
 
     annos = json.load(open(args.anno_path))
     if args.inject_abst:

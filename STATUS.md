@@ -1,6 +1,6 @@
 # ReadPast 当前状态（一页纸；改动方法、口径或决定时同步更新）
 
-最后更新：2026-11-06。历史与每轮细节见 `EXPERIMENTS.md`（按时间追加的日志），本页只写“现在是什么”。
+最后更新：2026-11-11。历史与每轮细节见 `EXPERIMENTS.md`（按时间追加的日志），本页只写“现在是什么”。
 
 ## 文件在哪
 | 要找 | 位置 |
@@ -10,12 +10,12 @@
 | 环境（容器、venv 包版本、权重 revision、数据 hash） | `envs/locks/README.md` + `envs/locks/<venv>.txt` |
 | 每轮的计划、判据、结果 | `EXPERIMENTS.md` |
 | 相关工作、对手的论文值、代码可得性 | `RELATED.md`（代码状态表在末尾） |
-| 论文 | `paper/draft.md`（md 草稿 v0）、`paper/figs/`（图 1–3 脚本）；`paper/main.tex` + `sections/` 仍是 IEEEtran 框架，需换 ACL 模板 |
+| 论文 | `paper/draft.md`（md 草稿 v0）、`paper/figs/`（图 1–3 脚本）；`paper/main.tex` + `sections/` 仍是 IEEEtran（TCSVT）框架，需改成 ICME 2027 的 IEEE 会议模板 |
 | 调研报告 | `reports/` |
 | 原始 run | `/data/REN/runs/streamkv/<yymmdd-HHMMSS-name>/out/`（rx 管理） |
 
 ## 投稿
-ACL 2027，经 ARR 2027 年 1 月一轮，截止 **2027-01-04 AoE**。long paper 正文 8 页 + 必须的 Limitations；双盲。（11-05 由 TCSVT 改投。）
+**IEEE ICME 2027**（厦门，2027-07-13–17），论文截止 **2026-12-30**（来自 IEEE SPS 会议列表；时区和页数上限官网 2027.ieeeicme.org 尚未核实，历届约 6 页）。11-11 由 ACL 2027 改投；ARR 1 月一轮（01-04）与 ICME 审稿期重叠，不能双投，不再投 ARR。（更早：11-05 由 TCSVT 改投 ACL。）
 
 ## 方法（ReadPast = "see the present, read the past"）
 1. **写**：同一骨干每 16 秒对 8 帧写一段字幕（`max_new_tokens=96`），按时间顺序组成文本时间线，放在当前画面之前。
@@ -40,7 +40,7 @@ ACL 2027，经 ARR 2027 年 1 月一轮，截止 **2027-01-04 AoE**。long paper
 已知弱点：Qwen2.5 不含 HLD 只 +0.82；SB 低于 D-HSM 重跑（Qwen2.5 −0.95、Qwen3 −0.27）；Qwen3 不含 HLD 低于 ShallowStream 论文值（71.19 对 71.65）；准确率上门 ≈ 总是读，门写成“只读 30–56%、RT 不掉”而不是涨分；LLaVA RT −0.67。
 
 ## 运行环境
-- rx 提交：`rx submit -n NAME -c ren_stream_all -m GB -- bash -c 'source envs/<venv>/bin/activate && python kfs/...'`；rx `allowed_gpus` = [2, 3]，未经 REN 同意不放宽。
+- rx 提交：`rx submit -n NAME -c ren_stream_all -m GB -- bash -c 'source envs/<venv>/bin/activate && python kfs/...'`；rx `allowed_gpus` = [0, 1]（11-12 REN 指定；之前是 [2, 3]），未经 REN 同意不改。
 - venv（`envs/`）：simplestream-qwen25、simplestream-qwen3（含 Conv3d 修补）、dhsm、hermes-*。
 - 数据：`/data/REN/datasets/streaming/{ovo_bench,streamingbench}`（SB 只有实时部分）。字幕缓存：`cache/captions_{q25,q3,q4,lov}_s16[_sb]`。
 - run 名对应（`kfs/analyze_round9.py` 的 `BACKBONES`）：近 4 帧 `r4_ss` / `r4_q3` / `r4_q4` / `r4_lov`；时间线 `cap16[_q3|_q4|_lov]`；共用提示的 187 题 `r4_cinstr*` / `cap16_cinstr*`；门 `route_*cal_p0`（OVO）、`route_*cal_sb_p0`（SB）；SB 全流程 `sb_casc*`；D-HSM `dhsm_mem_abstain*`、`dhsm_sb_*`。
@@ -58,9 +58,12 @@ ACL 2027，经 ARR 2027 年 1 月一轮，截止 **2027-01-04 AoE**。long paper
 - 11-03 只对比有代码的方法；ShallowStream 不重跑，用论文值；R1（答案端证据检验）移出方法。
 - 11-05 条件弃答指令 = 所有方法共用的作答提示，不算方法组件、不消融；主表基线改为同一提示的 SimpleStream。字幕间隔保持 16 秒（8/32 秒不敏感）。改投 ACL 2027。
 - 11-06 主表改为含 / 不含 HLD 两种口径并列（仍不写 HLD 伪增益的分析）。Forward 校准（第二十一轮）未过判据，最多写附录。不在 MVBench / MLVU / Video-MME 上评测。实验管理：正式 run 清单、每轮提交 git、环境冻结（见上“管理规范”）。
+- 11-11 改投 ICME 2027（截止 2026-12-30），不投 ARR 1 月一轮（不能双投）。补实验的建议（只补写入延迟修正；D-HSM 同一提示重跑、字幕截断修复、MEMO 补跑都不做）待 REN 确认。
 
 ## 待办 / 等 REN 决定
-- 论文：换 ACL 模板；`paper/draft.md` 主表换成上面的列格式；引言“三个问题”的故事线、图 2 样式待 REN 确认。
+- 第二十二轮（写入延迟修正，`EXPERIMENTS.md` 末尾）：方案待 REN 确认；包括主表是否改报修正后的数字。
+- ICME 零 GPU 工作：对比表补 OASIS / HERMES / FluxMem / MEMO 论文值（逐项核对原文，二手转引的标注）；12 月中、截止前各查一次无代码论文（尤其 FOLIO）是否放出代码。
+- 论文：改 ICME 模板（约 6 页）；`paper/draft.md` 主表换成上面的列格式；引言“三个问题”的故事线、图 2 样式待 REN 确认。
 - 字幕连贯性：E0 修截断（96 token 截断率 Qwen2.5 19%、Qwen3-8B 39%、4B 52%、LLaVA 81%）/ E1 离线去重 / E2 锚点+残差，等 REN。
 - D-HSM 用同一条件提示重跑：有了不含 HLD 的列后优先级低。
 - ReadPast 写完后的下一个项目（训练模块 / agentic 回看）：REN 说之前不启动。
