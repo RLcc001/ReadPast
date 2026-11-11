@@ -11,6 +11,10 @@ Protocol (decisions in STATUS.md):
   Prompt "shared" = conditional abstention instruction (D-HSM text) only on the 187 OVO MCQs that offer an
   abstention option (186 HLD + 1 EPM); "official" = SimpleStream prompt. SB has no abstention option -> identical.
   ReadPast = 16 s caption timeline + recent 4 frames + gate (a) (content-free calibrated p_past >= p_cf).
+  ReadPast is reported ONLINE (REN 11-12, round 22): the caption of clip [t0, t1] is usable only when
+  t1 + w <= query time, w = that backbone's measured p90 per-clip write time. The affected questions were
+  re-answered (MANIFEST["lag"]); "ReadPast (offline)" (caption usable at t1) is kept for the anchors and the
+  gate ablation (table 5 is offline until every rule is lag-corrected).
   D-HSM = public code rerun on our data/scorer (its default uniform instruction on every MCQ), round 18.
   Paper rows (D-HSM, ShallowStream) = values copied from the papers, own protocols; not comparable cell by cell.
 
@@ -58,11 +62,15 @@ PAPER = [  # (backbone, method, ovo dict, sb dict); copied from the papers (RELA
     ("lov", "ShallowStream (paper)", dict(RT=75.4, EPM=50.2, ASI=50.7, HLD=46.2), dict(overall=75.5)),
 ]
 ANCHORS = {  # (bb, method, prompt, field) -> value recorded in EXPERIMENTS.md (rounds 17-18, 11-05)
-    **{(b, "ReadPast", "shared", "Avg"): v for b, v in zip(BB, (70.78, 73.34, 72.60, 61.60))},
+    **{(b, "ReadPast (offline)", "shared", "Avg"): v for b, v in zip(BB, (70.78, 73.34, 72.60, 61.60))},
     **{(b, "SimpleStream", "shared", "Avg"): v for b, v in zip(BB, (68.88, 71.87, 71.48, 60.32))},
-    **{(b, "ReadPast", "official", "Avg"): v for b, v in zip(BB, (67.02, 70.39, 68.08, 60.07))},
+    **{(b, "ReadPast (offline)", "official", "Avg"): v for b, v in zip(BB, (67.02, 70.39, 68.08, 60.07))},
     **{(b, "SimpleStream", "official", "Avg"): v for b, v in zip(BB, (64.75, 67.66, 67.42, 59.15))},
-    **{(b, "ReadPast", "shared", "SB"): v for b, v in zip(BB, (79.56, 81.64, 81.40, 74.92))},
+    **{(b, "ReadPast (offline)", "shared", "SB"): v for b, v in zip(BB, (79.56, 81.64, 81.40, 74.92))},
+    # round 22 (11-12): ReadPast online (write-lag corrected), cross-checked against kfs/analyze_round22.py
+    **{(b, "ReadPast", "shared", "Avg"): v for b, v in zip(BB, (70.73, 73.33, 73.10, 61.94))},
+    **{(b, "ReadPast", "official", "Avg"): v for b, v in zip(BB, (66.97, 70.55, 68.32, 60.32))},
+    **{(b, "ReadPast", "shared", "SB"): v for b, v in zip(BB, (79.52, 81.48, 81.24, 74.80))},
     ("q25", "D-HSM", "own default", "Avg"): 67.73, ("q3", "D-HSM", "own default", "Avg"): 71.14,
     ("q25", "D-HSM", "own default", "SB"): 80.51, ("q3", "D-HSM", "own default", "SB"): 81.91,
 }
@@ -88,9 +96,29 @@ def odir(run_id):
     return f"{RUNS}/{run_id}/out"
 
 
+OVERLAY: dict = {}  # canonical run id -> {key: replacement record} (round-22 write-lag reruns), empty = offline
+
+
 def raw(run_id):
-    """Per-question records of one run (keyed by _key)."""
-    return {(r := json.loads(line))["_key"]: r for line in open(f"{odir(run_id)}/results_incremental.jsonl")}
+    """Per-question records of one run (keyed by _key), with OVERLAY replacements applied."""
+    rows = {(r := json.loads(line))["_key"]: r for line in open(f"{odir(run_id)}/results_incremental.jsonl")}
+    for k, r in OVERLAY.get(run_id, {}).items():
+        assert k in rows, (run_id, k)
+        rows[k] = r
+    return rows
+
+
+def lag_overlay(m, lag):
+    """Round 22: replace the timeline answers of the affected questions by the --write_lag reruns."""
+    ov = {m["ovo_timeline"]: raw(lag["ovo"]), m["ovo_timeline_instr"]: raw(lag["ovo_instr"])}
+    sb = {}
+    for run_id in lag["sb"]:
+        sb.update(raw(run_id))
+    shard_keys = [set(raw(sid)) for sid in m["sb"]]
+    for sid, ks in zip(m["sb"], shard_keys):
+        ov[sid] = {k: r for k, r in sb.items() if k in ks}
+    assert sum(len(ov[sid]) for sid in m["sb"]) == len(sb)
+    return ov
 
 
 def load_gen(run_id):
@@ -202,7 +230,7 @@ def dhsm(m):
 
 def check_manifest():
     """Every listed run must be finished; warn when a newer finished run with the same name exists."""
-    ids = [v for grp in ("ours", "dhsm") for d in MANIFEST[grp].values() for x in d.values()
+    ids = [v for grp in ("ours", "dhsm", "lag") for d in MANIFEST[grp].values() for x in d.values()
            for v in (x if isinstance(x, list) else [x])]
     warn = []
     for run_id in ids:
@@ -222,13 +250,26 @@ def build():
     recs = []
     for b, (_, _, disp) in BB.items():
         m = MANIFEST["ours"][b]
+        OVERLAY.clear()
         ovo, p_cf = ours_ovo(m)
         sb = ours_sb(m)
+        OVERLAY.update(lag_overlay(m, MANIFEST["lag"][b]))
+        ovo_on, _ = ours_ovo(m)
+        sb_on = ours_sb(m)
+        OVERLAY.clear()
+        assert all(ovo_on[("SimpleStream", p)] == ovo[("SimpleStream", p)] for p in ("official", "shared"))
+        assert sb_on["SimpleStream"] == sb["SimpleStream"]
         for rn in RULES:
             for prompt in ("official", "shared"):
-                recs.append(dict(bb=b, backbone=disp, method=rn, prompt=prompt, source="ours",
+                # rules other than ReadPast stay offline (only gate (a)'s reads were re-answered under lag)
+                recs.append(dict(bb=b, backbone=disp, method=rn if rn != "ReadPast" else "ReadPast (offline)",
+                                 prompt=prompt, source="ours", protocol="offline",
                                  ablation=rn not in ("SimpleStream", "ReadPast"), ovo=ovo[(rn, prompt)], sb=sb[rn],
                                  p_cf=p_cf if rn == "ReadPast" else None))
+        for prompt in ("official", "shared"):
+            recs.append(dict(bb=b, backbone=disp, method="ReadPast", prompt=prompt, source="ours", protocol="online",
+                             ablation=False, ovo=ovo_on[("ReadPast", prompt)], sb=sb_on["ReadPast"], p_cf=p_cf,
+                             write_lag_s=json.load(open("kfs/data/r22/w.json"))[b]["w"]))
         if b in MANIFEST["dhsm"]:
             o, s = dhsm(MANIFEST["dhsm"][b])
             recs.append(dict(bb=b, backbone=disp, method="D-HSM", prompt="own default", source="rerun (round 18)",
@@ -270,11 +311,14 @@ def write_md(recs, n_anchor):
     w = L.append
     w("# ReadPast 结果总表（自动生成，勿手改）\n")
     w(f"由 `python3 kfs/make_tables.py` 从原始 run 重算生成（{datetime.datetime.now():%Y-%m-%d %H:%M}）；"
-      f"机器可读版 `results/main_tables.json`。输入只取 `kfs/data/canonical_runs.json` 列出的 run；{n_anchor} 个已记录锚点（EXPERIMENTS.md 第十七、十八轮）逐位一致。"
+      f"机器可读版 `results/main_tables.json`。输入只取 `kfs/data/canonical_runs.json` 列出的 run；{n_anchor} 个已记录锚点（EXPERIMENTS.md 第十七、十八、二十二轮）逐位一致。"
       "口径与决定见 `STATUS.md`。\n")
     w("- OVO 标准 = (RT + BT) / 2，BT = (EPM + ASI + HLD) / 3；不含 HLD = (RT + (EPM + ASI) / 2) / 2。SB = StreamingBench 实时 2500 题准确率。")
     w("- 共用提示 = 只在带弃答选项的 187 道 OVO 题（186 HLD + 1 EPM）加 D-HSM 的弃答指令；官方提示 = SimpleStream 原提示。SB 无弃答选项，两种提示数字相同；不含 HLD 的列基本不受提示影响。")
-    w("- ‡ D-HSM = 公开代码同协议重跑（它默认每道选择题都加弃答指令）。† 论文值，各自协议，复现的 SimpleStream 不同，不宜逐格比较。\n")
+    w("- **ReadPast 为在线口径**（REN 11-12，第二十二轮）：[t0, t1] 段字幕在 t1 + w ≤ 提问时刻才可用，w = 该骨干实测每段写入耗时的 p90（H100 独占）："
+      + "、".join(f"{BB[b][2]} {get(recs, b, 'ReadPast', 'shared')['write_lag_s']:.2f} s" for b in BB)
+      + "。受影响的题按 `--write_lag` 重答（`MANIFEST[\"lag\"]`），离线口径（t1 即可用）见表 6。表 5 门的消融仍为离线口径（只有门 (a) 读的题重答过）。")
+    w("- ‡ D-HSM = 公开代码同协议重跑（它默认每道选择题都加弃答指令；它的 OVO 协议在提问时现建记忆，不计写入延迟）。† 论文值，各自协议，复现的 SimpleStream 不同，不宜逐格比较。\n")
 
     w("## 表 1 主表（共用提示；括号内为相对同一提示 SimpleStream）\n")
     w("| 骨干 | 方法 | SB Real-Time | OVO Real-Time | OVO Backward | OVO Backward 不含 HLD | OVO Avg | OVO Avg 不含 HLD |")
@@ -342,13 +386,13 @@ def write_md(recs, n_anchor):
             w(f"| {disp if first else ''} | {name} | " + " | ".join(f2(r["sb"].get(c), nd=nd) for c in cols) + " |")
             first = False
 
-    w("\n## 表 5 门的消融（共用提示；括号内为相对 SimpleStream；读记忆比例 = 门判为读的题占比）\n")
+    w("\n## 表 5 门的消融（**离线口径**；共用提示；括号内为相对 SimpleStream；读记忆比例 = 门判为读的题占比）\n")
     w("| 骨干 | 读记忆规则 | OVO Avg | OVO Avg 不含 HLD | OVO RT | SB | OVO 读记忆 BT / RT | SB 读记忆 |")
     w("|---|---|---|---|---|---|---|---|")
     for b, (_, _, disp) in BB.items():
         ss = get(recs, b, "SimpleStream", "shared")
         for i, m in enumerate(RULES):
-            r = get(recs, b, m, "shared")
+            r = get(recs, b, m if m != "ReadPast" else "ReadPast (offline)", "shared")
             o, s = r["ovo"], r["sb"]
             ref = lambda f, src="ovo": (ss[src][f] if i else None)  # noqa: E731
             name = "ReadPast 门 (a)" if m == "ReadPast" else ("从不读（SimpleStream）" if m == "SimpleStream" else m)
@@ -356,6 +400,22 @@ def write_md(recs, n_anchor):
               f"{f2(o['RT'], ref('RT'))} | {f2(s['overall'], ref('overall', 'sb'))} | "
               f"{o['read_BT']:.0f}% / {o['read_RT']:.0f}% | {s['read']:.0f}% |")
     w("\n消融的显著性（按视频重抽样）见 EXPERIMENTS.md 11-05：只有“时间线”清楚，门 ≈ 总是读（OVO），SB 上门更差。")
+
+    w("\n## 表 6 写入延迟修正：ReadPast 离线 vs 在线（括号内为相对同一提示 SimpleStream）\n")
+    w("| 骨干 | w (s) | 提示 | 口径 | SB Real-Time | OVO Real-Time | OVO Backward | OVO Avg | OVO Avg 不含 HLD |")
+    w("|---|---|---|---|---|---|---|---|---|")
+    for b, (_, _, disp) in BB.items():
+        first = True
+        for prompt, pname in (("shared", "共用"), ("official", "官方")):
+            ss = get(recs, b, "SimpleStream", prompt)
+            for meth, pr in (("ReadPast (offline)", "离线"), ("ReadPast", "在线")):
+                r = get(recs, b, meth, prompt)
+                o, sbv = r["ovo"], r["sb"]
+                wl = f"{get(recs, b, 'ReadPast', 'shared')['write_lag_s']:.2f}" if first else ""
+                w(f"| {disp if first else ''} | {wl} | {pname} | {pr} | {f2(sbv['overall'], ss['sb']['overall'])} | "
+                  f"{f2(o['RT'], ss['ovo']['RT'])} | {f2(o['BT'], ss['ovo']['BT'])} | {f2(o['Avg'], ss['ovo']['Avg'])} | "
+                  f"{f2(o['Avg_noHLD'], ss['ovo']['Avg_noHLD'])} |")
+                first = False
     open("RESULTS.md", "w").write("\n".join(L) + "\n")
 
 

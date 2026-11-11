@@ -106,5 +106,36 @@
     "261103-224903-dhsm_sb_q3_s5"
    ]
   }
+ },
+ "_doc_lag": "Round 22 (REN 11-12: main tables report ReadPast online): --write_lag reruns of the questions whose gate-(a) timeline loses its newest caption(s) when a caption is usable only w s after its clip ends (w = measured p90 write time, kfs/data/r22/w.json; keys kfs/data/r22/keys_*). make_tables overlays them.",
+ "lag": {
+  "q25": {
+   "ovo": "261112-001713-r22_ovo_q25",
+   "ovo_instr": "261112-001714-r22_ovo_instr_q25",
+   "sb": [
+    "261112-001715-r22_sb_q25"
+   ]
+  },
+  "q3": {
+   "ovo": "261112-001715-r22_ovo_q3",
+   "ovo_instr": "261112-001716-r22_ovo_instr_q3",
+   "sb": [
+    "261112-001716-r22_sb_q3"
+   ]
+  },
+  "q4": {
+   "ovo": "261112-001717-r22_ovo_q4",
+   "ovo_instr": "261112-001718-r22_ovo_instr_q4",
+   "sb": [
+    "261112-001719-r22_sb_q4"
+   ]
+  },
+  "lov": {
+   "ovo": "261112-001719-r22_ovo_lov",
+   "ovo_instr": "261112-001720-r22_ovo_instr_lov",
+   "sb": [
+    "261112-001721-r22_sb_lov"
+   ]
+  }
  }
 }
