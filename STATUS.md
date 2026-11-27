@@ -66,6 +66,6 @@
 - 门的消融（表 5）要不要也改成在线口径：需把其他读记忆规则（总是读、固定 0.5、ShallowStream 门）读到、且受延迟影响的题也重答，等 REN。
 - ICME 零 GPU 工作：对比表补 OASIS / HERMES / FluxMem / MEMO 论文值（逐项核对原文，二手转引的标注）；12 月中、截止前各查一次无代码论文（尤其 FOLIO）是否放出代码。
 - 论文：改 ICME 模板（约 6 页）；`paper/draft.md` 主表换成上面的列格式；引言“三个问题”的故事线、图 2 样式待 REN 确认。
-- 字幕连贯性：E0 修截断（96 token 截断率 Qwen2.5 19%、Qwen3-8B 39%、4B 52%、LLaVA 81%）/ E1 离线去重 / E2 锚点+残差，等 REN。
+- 字幕连贯性：E0 修截断（96 token 截断率 Qwen2.5 19%、Qwen3-8B 39%、4B 52%、LLaVA 81%）方案已写（EXPERIMENTS.md 第二十三轮，11-27），待 REN 确认；E1 离线去重 / E2 锚点+残差，等 REN。
 - D-HSM 用同一条件提示重跑：有了不含 HLD 的列后优先级低。
 - ReadPast 写完后的下一个项目（训练模块 / agentic 回看）：REN 说之前不启动。
