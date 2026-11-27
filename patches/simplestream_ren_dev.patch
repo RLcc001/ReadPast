@@ -1,0 +1,37 @@
+From 9440b09b25ddb48d4ab67bdddf2d5d680761eb84 Mon Sep 17 00:00:00 2001
+From: REN <ren@lmd.ist.hokudai.ac.jp>
+Date: Fri, 23 Oct 2026 16:05:34 +0000
+Subject: [PATCH] [REN] StreamingBench: key results by question_id (upstream
+ key collided, skipped 139 Qs)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ main_experiments/eval_streamingbench.py | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/main_experiments/eval_streamingbench.py b/main_experiments/eval_streamingbench.py
+index 1370209..ad94ecb 100644
+--- a/main_experiments/eval_streamingbench.py
++++ b/main_experiments/eval_streamingbench.py
+@@ -52,6 +52,9 @@ def timestamp_to_seconds(ts: str) -> int:
+ 
+ 
+ def make_key(video_basename: str, q: dict[str, Any], question_limit: int = 80) -> str:
++    # [streamkv] question text prefixes collide within a timestamp (e.g. Counting); key on question_id when present
++    if q.get("question_id"):
++        return f"{video_basename}_{q['question_id']}"
+     return f"{video_basename}_{q.get('time_stamp', '')}_{q.get('question', '')[:question_limit]}"
+ 
+ 
+@@ -181,7 +184,7 @@ def run_benchmark(
+     def is_done(video_basename: str, question: dict[str, Any]) -> bool:
+         return (
+             make_key(video_basename, question, question_limit=80) in done_keys
+-            or make_key(video_basename, question, question_limit=50) in legacy_done_keys
++            or (not question.get("question_id") and make_key(video_basename, question, question_limit=50) in legacy_done_keys)
+         )
+ 
+     with open(ckpt_path, "a") as ckpt_file:
+-- 
+2.43.0
+
